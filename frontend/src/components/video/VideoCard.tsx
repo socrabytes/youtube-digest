@@ -64,22 +64,34 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
         <h3 className="text-lg font-semibold line-clamp-2 mb-2">
           {video.title || 'Processing video...'}
         </h3>
-        <div className="flex items-center text-sm text-gray-600">
-          {video.channelTitle && (
+        <div className="flex items-center text-sm text-gray-600 mb-2">
+          {video.channel_title && (
             <>
-              <span>{video.channelTitle}</span>
+              <span>{video.channel_title}</span>
               <span className="mx-2">•</span>
             </>
           )}
-          {video.viewCount && <span>{formatViews(video.viewCount)}</span>}
+          {video.view_count && <span>{formatViews(video.view_count)}</span>}
         </div>
-        {video.digest && (
-          <div className="mt-3 flex items-center text-sm text-indigo-600">
-            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+        
+        {video.summary ? (
+          <div className="mt-3 text-sm text-gray-700">
+            <h4 className="font-semibold text-indigo-600 mb-1">Summary</h4>
+            <p>{video.summary}</p>
+          </div>
+        ) : video.processed === false ? (
+          <div className="mt-3 text-sm text-gray-500 flex items-center">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Digest Available
+            Generating summary...
+          </div>
+        ) : null}
+        
+        {video.error_message && (
+          <div className="mt-3 text-sm text-red-600">
+            Error: {video.error_message}
           </div>
         )}
       </div>

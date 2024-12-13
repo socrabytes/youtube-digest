@@ -18,7 +18,8 @@ export default function Home() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/`, {
+      // Create or update the video
+      const createResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -26,12 +27,30 @@ export default function Home() {
         body: JSON.stringify({ url }),
       });
 
-      if (!response.ok) {
+      if (!createResponse.ok) {
         throw new Error('Failed to submit video');
       }
 
-      const newVideo = await response.json();
-      setVideos(prev => [newVideo, ...prev]);
+      const newVideo = await createResponse.json();
+      
+      // Update videos list, removing any existing version of this video
+      setVideos(prev => {
+        const filtered = prev.filter(v => v.youtube_id !== newVideo.youtube_id);
+        return [newVideo, ...filtered];
+      });
+      
+      // Process the video to generate summary
+      const processResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${newVideo.id}/process`, {
+        method: 'POST',
+      });
+
+      if (processResponse.ok) {
+        const processedVideo = await processResponse.json();
+        setVideos(prev => prev.map(v => 
+          v.id === processedVideo.id ? processedVideo : v
+        ));
+      }
+
       setUrl('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
