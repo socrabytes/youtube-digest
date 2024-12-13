@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1 import videos
+from app.core.config import settings
 
 app = FastAPI(
     title="YouTube Digest API",
     description="API for processing and analyzing YouTube videos",
-    version="1.0.0"
+    version=settings.VERSION
 )
 
 # Configure CORS
@@ -16,6 +18,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(videos.router, prefix=settings.API_V1_STR)
+
 @app.get("/")
 async def root():
-    return {"message": "Welcome to YouTube Digest API"}
+    return {
+        "message": "Welcome to YouTube Digest API",
+        "docs_url": "/docs",
+        "version": settings.VERSION
+    }
