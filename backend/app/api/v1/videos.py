@@ -159,7 +159,7 @@ async def process_video(video_id: int, db: Session = Depends(get_db)):
         
         # Generate summary
         logger.info(f"Generating summary for video: {video.youtube_id}")
-        summary = await processor.generate_summary(video_data)
+        summary = processor.generate_summary(video_data)
         
         if summary:
             video.summary = summary

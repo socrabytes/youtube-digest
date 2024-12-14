@@ -109,7 +109,7 @@ class VideoProcessor:
             logger.error(f"Error extracting transcript: {str(e)}", exc_info=True)
             return None
 
-    async def generate_summary(self, video_data: Dict[str, Any]) -> Optional[str]:
+    def generate_summary(self, video_data: Dict[str, Any]) -> Optional[str]:
         """Generate a summary of the video using OpenAI."""
         if not self.client:
             logger.warning("OpenAI client not initialized - skipping summary generation")
@@ -126,8 +126,8 @@ Tags: {', '.join(video_data.get('tags', []))}
 Please provide a concise 2-3 sentence summary that captures the main topic and value proposition of this video.
 Focus on what viewers will learn or experience."""
 
-            # Call OpenAI API
-            response = await self.client.chat.completions.create(
+            # Call OpenAI API (synchronously)
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that creates concise video summaries."},
