@@ -1,13 +1,19 @@
 export interface Video {
   id: string;
+  youtube_id: string;
   url: string;
   title?: string;
-  description?: string;
+  thumbnail_url?: string;
   duration?: number;
-  publishedAt?: string;
-  channelTitle?: string;
-  viewCount?: number;
-  digest?: VideoDigest;
+  view_count?: number;
+  channel_id?: string;
+  channel_title?: string;
+  tags?: string[];
+  categories?: string[];
+  transcript?: string;
+  summary?: string;
+  processed?: boolean;
+  error_message?: string;
 }
 
 export interface VideoDigest {
