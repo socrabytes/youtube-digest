@@ -10,78 +10,85 @@ An intelligent platform that automatically processes YouTube videos to create co
 - Video submission form with thumbnail display
 - Basic video metadata storage
 
-🚧 **Phase 2: Video Processing** (Next Up)
+✅ **Phase 2: Video Processing** (Completed)
 - OpenAI integration for summaries
 - PostgreSQL database implementation
 - Enhanced video metadata handling
+- Containerized development environment
 
 ## Tech Stack
 
 ### Backend
 - Python 3.11+
 - FastAPI
-- PostgreSQL (planned)
-- OpenAI API (planned)
+- PostgreSQL
+- OpenAI API
+- Docker
 
 ### Frontend
 - Next.js 14
 - TypeScript
 - TailwindCSS
 - React
+- Docker
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ for frontend
-- Python 3.11+ for backend
-- PostgreSQL (coming soon)
+- Docker and Docker Compose
+- OpenAI API key
 
 ### Environment Setup
 
-1. Backend Setup
+1. Clone the repository
 ```bash
-cd backend
-# Create and activate virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-cp .env.example .env
-# Edit .env with your configuration
+git clone <repository-url>
+cd youtube-digest
 ```
 
-2. Frontend Setup
-```bash
-cd frontend
-# Install dependencies
-npm install
+2. Set up environment files:
 
-# Create .env.local file
-cp .env.example .env.local
-# Edit .env.local with your configuration
+Backend (.env):
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env with your OpenAI API key and other settings
 ```
 
-### Running the Application
-
-1. Start the Backend
+Frontend (.env.local):
 ```bash
-cd backend
-uvicorn app.main:app --reload
+cp frontend/.env.example frontend/.env.local
 ```
 
-2. Start the Frontend (in a new terminal)
+### Running with Docker
+
+1. Start all services:
 ```bash
-cd frontend
-npm run dev
+docker-compose up
 ```
 
 The application will be available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
+
+### Stopping the Application
+
+1. To stop while preserving data:
+```bash
+docker-compose down
+```
+
+2. To stop and remove all data (including database):
+```bash
+docker-compose down -v
+```
+
+### Development
+
+The setup includes hot-reload for both frontend and backend:
+- Frontend changes will automatically refresh
+- Backend changes will trigger automatic restart
+- Database data persists between restarts
 
 ## Next Steps
 
@@ -99,4 +106,4 @@ The application will be available at:
 
 Please follow our commit message convention using gitmoji:
 - Format: <emoji> (scope): <message>
-- Example: ✨ (frontend): Add video submission form
+- Example: 🐛 (backend): Fix OpenAI integration
