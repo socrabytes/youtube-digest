@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -14,15 +15,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <h1 className="text-2xl font-bold text-indigo-600">YouTube Digest</h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <a href="/" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500">
+              <Link href="/" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500">
                 Home
-              </a>
-              <a href="/library" className="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent">
+              </Link>
+              <Link href="/library" className="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent">
                 Library
-              </a>
-              <a href="/digests" className="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent">
+              </Link>
+              <Link href="/digests" className="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent">
                 Digests
-              </a>
+              </Link>
             </div>
           </div>
         </nav>
@@ -35,7 +36,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <footer className="bg-white border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-500 text-sm">
-            © {new Date().getFullYear()} YouTube Digest. All rights reserved.
+            &copy; {new Date().getFullYear()} YouTube Digest. All rights reserved.
           </p>
         </div>
       </footer>
