@@ -1,109 +1,66 @@
 # YouTube Video Digest Platform
 
-An intelligent platform that automatically processes YouTube videos to create comprehensive, interactive digests.
+Transform YouTube videos into comprehensive, interactive digests powered by AI.
 
-## Current Status
+## ✨ Features
 
-✅ **Phase 1: Basic Infrastructure** (Completed)
-- Frontend setup with Next.js and TypeScript
-- Backend API with FastAPI
-- Video submission form with thumbnail display
-- Basic video metadata storage
+- 🎥 **Video Analysis**: Submit any YouTube video URL
+- 🤖 **AI-Powered Summaries**: Get intelligent summaries of video content
+- 🖼️ **Visual Preview**: See video thumbnails and metadata
+- 📊 **Comprehensive Details**: View duration, channel info, and more
 
-✅ **Phase 2: Video Processing** (Completed)
-- OpenAI integration for summaries
-- PostgreSQL database implementation
-- Enhanced video metadata handling
-- Containerized development environment
-
-## Tech Stack
-
-### Backend
-- Python 3.11+
-- FastAPI
-- PostgreSQL
-- OpenAI API
-- Docker
-
-### Frontend
-- Next.js 14
-- TypeScript
-- TailwindCSS
-- React
-- Docker
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
+
 - Docker and Docker Compose
 - OpenAI API key
 
-### Environment Setup
+### Quick Start
 
-1. Clone the repository
+1. Clone the repository:
 ```bash
 git clone <repository-url>
 cd youtube-digest
 ```
 
-2. Set up environment files:
+2. Create environment files:
 
-Backend (.env):
 ```bash
-cp backend/.env.example backend/.env
-# Edit backend/.env with your OpenAI API key and other settings
+# Backend (.env)
+OPENAI_API_KEY=your_api_key
+DATABASE_URL=postgresql://postgres:postgres@db:5432/youtube_digest
+
+# Frontend (.env.local)
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-Frontend (.env.local):
-```bash
-cp frontend/.env.example frontend/.env.local
-```
-
-### Running with Docker
-
-1. Start all services:
+3. Start the application:
 ```bash
 docker-compose up
 ```
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-### Stopping the Application
+## 💡 Usage
 
-1. To stop while preserving data:
-```bash
-docker-compose down
-```
+1. Visit the homepage
+2. Paste a YouTube video URL
+3. Click "Create Digest"
+4. View your video digest with AI-generated insights
 
-2. To stop and remove all data (including database):
-```bash
-docker-compose down -v
-```
+## 🛠️ Tech Stack
 
-### Development
+- **Frontend**: Next.js 14, TypeScript, TailwindCSS
+- **Backend**: FastAPI, PostgreSQL, OpenAI
+- **Infrastructure**: Docker
 
-The setup includes hot-reload for both frontend and backend:
-- Frontend changes will automatically refresh
-- Backend changes will trigger automatic restart
-- Database data persists between restarts
+## 📝 Development
 
-## Next Steps
+For development status, progress, and contribution guidelines, see:
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Current development status
+- [CHANGELOG.md](CHANGELOG.md) - Version history
 
-1. Video Processing
-   - Implement OpenAI integration for generating summaries
-   - Set up PostgreSQL for persistent storage
-   - Add video metadata extraction
+## 📄 License
 
-2. Frontend Enhancements
-   - Add summary display component
-   - Implement video filtering and search
-   - Add user authentication (optional)
-
-## Contributing
-
-Please follow our commit message convention using gitmoji:
-- Format: <emoji> (scope): <message>
-- Example: 🐛 (backend): Fix OpenAI integration
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
