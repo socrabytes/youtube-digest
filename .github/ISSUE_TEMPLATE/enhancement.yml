@@ -1,0 +1,65 @@
+name: 🚀 Enhancement
+description: Suggest an improvement to an existing feature
+
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🔍 Component
+      description: Which component needs enhancement?
+      options:
+        - label: backend
+          description: Backend services and API
+        - label: frontend
+          description: User interface and experience
+        - label: database
+          description: Data storage and queries
+        - label: infrastructure
+          description: Development and deployment
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: 📍 Current Feature
+      description: Describe the current feature or functionality
+      placeholder: "What's the existing behavior?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: enhancement
+    attributes:
+      label: 💫 Proposed Enhancement
+      description: Describe how you'd like to improve it
+      placeholder: |
+        - What would make this feature better?
+        - How would this improve user experience?
+        - Any specific technical improvements?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Priority
+      description: How important is this enhancement?
+      options:
+        - label: high
+          description: Significant improvement to core feature
+        - label: medium
+          description: Notable improvement to user experience
+        - label: low
+          description: Minor enhancement or optimization
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Any other context, screenshots, or examples
+      placeholder: "Add any other context about the enhancement here"
+    validations:
+      required: false
