@@ -2,15 +2,6 @@ name: 🐛 Bug Report
 description: Report an issue or unexpected behavior
 
 body:
-  - type: input
-    id: title
-    attributes:
-      label: 📌 Title
-      description: A clear and concise title describing the issue
-      placeholder: "e.g., Video processing fails for long videos"
-    validations:
-      required: true
-
   - type: dropdown
     id: component
     attributes:
