@@ -1,51 +1,52 @@
-name: 📚 Documentation
-description: Suggest improvements or additions to documentation
+name: "📚 Documentation"
+description: "Suggest improvements or additions to documentation"
 
 body:
   - type: dropdown
     id: doc_type
     attributes:
-      label: 📑 Documentation Type
-      description: What type of documentation needs work?
+      label: "📑 Documentation Type"
+      description: "What type of documentation needs work?"
       options:
-        - label: README
-          description: Main project documentation
-        - label: API Documentation
-          description: API endpoints and usage
-        - label: Setup Guide
-          description: Installation and configuration
-        - label: User Guide
-          description: How to use features
-        - label: Other
-          description: Other documentation needs
+        - readme
+        - api
+        - setup
+        - usage
+        - contributing
     validations:
       required: true
 
   - type: dropdown
     id: component
     attributes:
-      label: 🔍 Component
-      description: Which part of the project does this documentation cover?
+      label: "🔍 Component"
+      description: "Which component's documentation needs updating?"
       options:
-        - label: backend
-          description: Backend services documentation
-        - label: frontend
-          description: Frontend and UI documentation
-        - label: database
-          description: Database schema and operations
-        - label: infrastructure
-          description: Setup and deployment docs
+        - backend
+        - frontend
+        - database
+        - infrastructure
+        - general
     validations:
       required: true
 
   - type: textarea
-    id: description
+    id: current_docs
     attributes:
-      label: 💡 Proposed Changes
-      description: Describe what documentation changes are needed
+      label: "📝 Current Documentation"
+      description: "Describe the current documentation (if it exists)"
+      placeholder: "What does the current documentation say or lack?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposed_changes
+    attributes:
+      label: "✨ Proposed Changes"
+      description: "Describe what should be added or modified"
       placeholder: |
-        - What's missing or unclear?
-        - What needs to be updated?
+        - What should be added?
+        - What should be clarified?
         - Any specific examples to include?
     validations:
       required: true
@@ -53,8 +54,8 @@ body:
   - type: textarea
     id: additional
     attributes:
-      label: 📝 Additional Context
-      description: Any other context or screenshots
-      placeholder: "Add any other context about the documentation needs here"
+      label: "📌 Additional Context"
+      description: "Any other context or screenshots"
+      placeholder: "Add any other context about the documentation changes"
     validations:
       required: false
