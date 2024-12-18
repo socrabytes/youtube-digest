@@ -1,0 +1,87 @@
+name: ✅ Task
+description: Track implementation, integration, or setup work
+
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🔍 Component
+      description: Which component does this task involve?
+      options:
+        - label: backend
+          description: Backend implementation tasks
+        - label: frontend
+          description: Frontend implementation tasks
+        - label: database
+          description: Database setup and operations
+        - label: infrastructure
+          description: Setup and configuration tasks
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task_type
+    attributes:
+      label: 🏗️ Task Type
+      description: What kind of task is this?
+      options:
+        - label: implementation
+          description: New code or functionality implementation
+        - label: integration
+          description: Connecting components or services
+        - label: setup
+          description: Environment or tool configuration
+        - label: testing
+          description: Writing or updating tests
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📋 Task Description
+      description: What needs to be done?
+      placeholder: |
+        Clear description of the work required:
+        - Specific implementation details
+        - Dependencies or prerequisites
+        - Expected outcome
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: ✅ Completion Criteria
+      description: What defines this task as complete?
+      placeholder: |
+        - [ ] Specific requirement 1
+        - [ ] Specific requirement 2
+        - [ ] Tests added/updated
+        - [ ] Documentation updated
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Priority
+      description: Task priority level
+      options:
+        - label: high
+          description: Critical path or blocking
+        - label: medium
+          description: Important but not blocking
+        - label: low
+          description: Can be done later
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 📝 Additional Notes
+      description: Any other relevant information
+      placeholder: "Technical details, links to resources, etc."
+    validations:
+      required: false
