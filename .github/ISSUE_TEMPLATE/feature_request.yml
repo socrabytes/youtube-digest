@@ -1,20 +1,11 @@
-name: Feature Request
+name: ✨ Feature Request
 description: Propose a new feature or enhancement.
 
 body:
-  - type: input
-    id: title
-    attributes:
-      label: Title
-      description: A concise title for the feature request.
-      placeholder: "e.g., Add user authentication to the login page"
-    validations:
-      required: true
-
   - type: dropdown
     id: component
     attributes:
-      label: Component
+      label: 🔍 Component
       description: Which part of the project does this feature affect?
       options:
         - label: backend
@@ -31,7 +22,7 @@ body:
   - type: dropdown
     id: priority
     attributes:
-      label: Priority
+      label: 🎯 Priority
       description: How critical is this feature?
       options:
         - label: high
@@ -46,7 +37,7 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: Description
+      label: 💡 Description
       description: Provide a clear explanation of the feature and its purpose.
       placeholder: "Describe the feature and the problem it solves."
     validations:
@@ -55,7 +46,7 @@ body:
   - type: textarea
     id: acceptance
     attributes:
-      label: Acceptance Criteria
+      label: ✅ Acceptance Criteria
       description: List the conditions that must be met for the feature to be complete.
       placeholder: |
         Example:
