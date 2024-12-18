@@ -1,0 +1,60 @@
+name: 📚 Documentation
+description: Suggest improvements or additions to documentation
+
+body:
+  - type: dropdown
+    id: doc_type
+    attributes:
+      label: 📑 Documentation Type
+      description: What type of documentation needs work?
+      options:
+        - label: README
+          description: Main project documentation
+        - label: API Documentation
+          description: API endpoints and usage
+        - label: Setup Guide
+          description: Installation and configuration
+        - label: User Guide
+          description: How to use features
+        - label: Other
+          description: Other documentation needs
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🔍 Component
+      description: Which part of the project does this documentation cover?
+      options:
+        - label: backend
+          description: Backend services documentation
+        - label: frontend
+          description: Frontend and UI documentation
+        - label: database
+          description: Database schema and operations
+        - label: infrastructure
+          description: Setup and deployment docs
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 💡 Proposed Changes
+      description: Describe what documentation changes are needed
+      placeholder: |
+        - What's missing or unclear?
+        - What needs to be updated?
+        - Any specific examples to include?
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Any other context or screenshots
+      placeholder: "Add any other context about the documentation needs here"
+    validations:
+      required: false
