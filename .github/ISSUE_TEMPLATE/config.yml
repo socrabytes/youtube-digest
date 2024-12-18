@@ -1,17 +1,10 @@
 blank_issues_enabled: false
 
 contact_links:
-  - name: 📖 Project Documentation
-    url: https://github.com/socrabytes/youtube-digest/blob/main/README.md
-    about: Check our documentation before creating an issue
+  - name: "📖 Project Documentation"
+    url: "https://github.com/socrabytes/youtube-digest/blob/main/README.md"
+    about: "Check our documentation before creating an issue"
 
-  - name: 🎯 Project Board
-    url: https://github.com/socrabytes/youtube-digest/projects
-    about: View our project progress and roadmap
-
-template_order:
-  - task.yml
-  - feature_request.yml
-  - enhancement.yml
-  - bug_report.yml
-  - documentation.yml
+  - name: "🎯 Project Board"
+    url: "https://github.com/socrabytes/youtube-digest/projects"
+    about: "View our project progress and roadmap"
