@@ -1,55 +1,47 @@
-name: ✨ Feature Request
-description: Propose a new feature or enhancement.
+name: "✨ Feature Request"
+description: "Propose a new feature or enhancement"
 
 body:
   - type: dropdown
     id: component
     attributes:
-      label: 🔍 Component
-      description: Which part of the project does this feature affect?
+      label: "🔍 Component"
+      description: "Which part of the project does this feature affect?"
       options:
-        - label: backend
-          description: Backend services (e.g., API, business logic)
-        - label: frontend
-          description: User interface and client-side logic
-        - label: database
-          description: Database schema or performance improvements
-        - label: infrastructure
-          description: CI/CD, deployment, or tooling
+        - backend
+        - frontend
+        - database
+        - infrastructure
     validations:
       required: true
 
   - type: dropdown
     id: priority
     attributes:
-      label: 🎯 Priority
-      description: How critical is this feature?
+      label: "🎯 Priority"
+      description: "How critical is this feature?"
       options:
-        - label: high
-          description: Critical or blocking progress
-        - label: medium
-          description: Important but not blocking
-        - label: low
-          description: Nice-to-have
+        - high
+        - medium
+        - low
     validations:
       required: true
 
   - type: textarea
     id: description
     attributes:
-      label: 💡 Description
-      description: Provide a clear explanation of the feature and its purpose.
-      placeholder: "Describe the feature and the problem it solves."
+      label: "💡 Description"
+      description: "Provide a clear explanation of the feature and its purpose"
+      placeholder: "Describe the feature and the problem it solves"
     validations:
       required: true
 
   - type: textarea
     id: acceptance
     attributes:
-      label: ✅ Acceptance Criteria
-      description: List the conditions that must be met for the feature to be complete.
+      label: "✅ Acceptance Criteria"
+      description: "List the conditions that must be met for the feature to be complete"
       placeholder: |
-        Example:
         - [ ] The API endpoint returns the correct data
         - [ ] The UI displays the new button
     validations:
