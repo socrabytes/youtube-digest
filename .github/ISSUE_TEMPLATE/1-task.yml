@@ -4,47 +4,30 @@ title: "[Task] "
 projects: ["socrabytes/6"]
 
 body:
-  - type: checkboxes
-    id: component_reminder
+  - type: markdown
     attributes:
-      label: "🏷️ Component Label"
-      description: "Add one of these component labels to the issue"
-      options:
-        - label: "`backend`"
-        - label: "`frontend`"
-        - label: "`database`"
-        - label: "`infrastructure`"
+      label: "🏷️ Labels Guide"
+      value: |
+        ### Component Labels (Add one)
+        `backend` | `frontend` | `database` | `infrastructure`
 
-  - type: checkboxes
-    id: priority_reminder
-    attributes:
-      label: "🎯 Priority Label"
-      description: "Add one of these priority labels to the issue"
-      options:
-        - label: "`high`"
-        - label: "`medium`"
-        - label: "`low`"
+        ### Priority Labels (Add one)
+        `high` | `medium` | `low`
 
-  - type: checkboxes
-    id: milestone_reminder
-    attributes:
-      label: "📅 Milestone"
-      description: "Remember to assign this task to a project phase"
-      options:
-        - label: "Phase 1: Basic Infrastructure"
-        - label: "Phase 2: Video Processing"
-        - label: "Phase 3: Enhanced UX"
-        - label: "Phase 4: Advanced Features"
+        ### Project Phase (Add to milestone)
+        Phase 1: Basic Infrastructure
+        Phase 2: Video Processing
+        Phase 3: Enhanced UX
+        Phase 4: Advanced Features
 
   - type: checkboxes
     id: confirmation
     attributes:
-      label: "✨ Task Setup Confirmation"
+      label: "📝 Task Setup Confirmation"
       description: "Confirm you've set up the task properly"
       options:
         - label: "I have added appropriate labels"
           required: true
-
 
   - type: textarea
     id: description
