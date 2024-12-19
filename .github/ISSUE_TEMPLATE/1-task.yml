@@ -1,76 +1,100 @@
 name: "✅ Task"
-description: "Track implementation, integration, or setup work"
+description: "Create a new development task"
+title: "[Task] "
+projects: ["socrabytes/6"]
 
 body:
-  - type: dropdown
-    id: component
+  - type: checkboxes
+    id: component_reminder
     attributes:
-      label: "🔍 Component"
-      description: "Which component does this task involve?"
+      label: "🏷️ Component Label"
+      description: "Add one of these component labels to the issue"
       options:
-        - backend
-        - frontend
-        - database
-        - infrastructure
-    validations:
-      required: true
+        - label: "`backend`"
+        - label: "`frontend`"
+        - label: "`database`"
+        - label: "`infrastructure`"
 
-  - type: dropdown
-    id: task_type
+  - type: checkboxes
+    id: priority_reminder
     attributes:
-      label: "🏗️ Task Type"
-      description: "What kind of task is this?"
+      label: "🎯 Priority Label"
+      description: "Add one of these priority labels to the issue"
       options:
-        - implementation
-        - integration
-        - setup
-        - testing
-    validations:
-      required: true
+        - label: "`high`"
+        - label: "`medium`"
+        - label: "`low`"
+
+  - type: checkboxes
+    id: milestone_reminder
+    attributes:
+      label: "📅 Milestone"
+      description: "Remember to assign this task to a project phase"
+      options:
+        - label: "Phase 1: Basic Infrastructure"
+        - label: "Phase 2: Video Processing"
+        - label: "Phase 3: Enhanced UX"
+        - label: "Phase 4: Advanced Features"
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: "✨ Task Setup Confirmation"
+      description: "Confirm you've set up the task properly"
+      options:
+        - label: "I have added appropriate labels"
+          required: true
+
 
   - type: textarea
     id: description
     attributes:
       label: "📋 Task Description"
-      description: "What needs to be done?"
+      description: "Technical requirements and expected outcome"
       placeholder: |
-        Clear description of the work required:
-        - Specific implementation details
-        - Dependencies or prerequisites
-        - Expected outcome
+        Technical Details:
+        - Implementation requirements
+        - Dependencies/prerequisites
+        - Expected behavior/outcome
+        - Technical constraints
     validations:
       required: true
 
   - type: textarea
     id: acceptance
     attributes:
-      label: "✅ Completion Criteria"
-      description: "What defines this task as complete?"
+      label: "✅ Acceptance Criteria"
+      description: "Clear, testable requirements that define completion"
       placeholder: |
-        - [ ] Specific requirement 1
-        - [ ] Specific requirement 2
+        - [ ] Implementation requirement 1
+        - [ ] Implementation requirement 2
         - [ ] Tests added/updated
-        - [ ] Documentation updated
-    validations:
-      required: true
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: "🎯 Priority"
-      description: "Task priority level"
-      options:
-        - high
-        - medium
-        - low
+        - [ ] Documentation updated if needed
     validations:
       required: true
 
   - type: textarea
-    id: notes
+    id: implementation
     attributes:
-      label: "📝 Additional Notes"
-      description: "Any other relevant information"
-      placeholder: "Technical details, links to resources, etc."
+      label: "🛠️ Implementation Guide"
+      description: "Technical guidance for implementation"
+      placeholder: |
+        Branch Naming Convention:
+        <type>/<issue-number>-<short-description>
+
+        Types:
+        - feat/    : New features
+        - fix/     : Bug fixes
+        - docs/    : Documentation
+        - refactor/: Code refactoring
+        - test/    : Testing
+        - chore/   : Maintenance
+
+        Example: feat/42-add-video-processing
+
+        Technical Notes:
+        - Architecture considerations
+        - Design patterns
+        - Performance requirements
     validations:
       required: false
