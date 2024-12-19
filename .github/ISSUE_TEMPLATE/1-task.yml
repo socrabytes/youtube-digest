@@ -6,7 +6,6 @@ projects: ["socrabytes/6"]
 body:
   - type: markdown
     attributes:
-      label: "🏷️ Labels Guide"
       value: |
         ### Component Labels (Add one)
         `backend` | `frontend` | `database` | `infrastructure`
