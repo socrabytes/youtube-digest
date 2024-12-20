@@ -1,94 +1,101 @@
-name: "🐛 Bug Report"
-description: "Report an issue or unexpected behavior"
+name: "Bug Report"
+description: Report a bug or issue
 title: "[Bug] "
 labels: ["bug"]
 projects: ["socrabytes/6"]
 
 body:
-  - type: checkboxes
+  - type: markdown
+    attributes:
+      value: |
+        🔍 Prerequisites
+
+  - type: dropdown
     id: prerequisites
     attributes:
-      label: "🔍 Prerequisites"
-      description: "Please verify the following before submitting:"
+      label: Bug Report Prerequisites
+      description: Please confirm you have checked for existing issues
       options:
-        - label: "I have searched existing issues and this bug hasn't been reported yet"
-          required: true
+        - "✅ Yes, I have searched existing issues and this bug hasn't been reported yet"
+        - "❌ No, I need to check existing issues first"
+      default: 1
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Affected Component
 
   - type: dropdown
     id: component
     attributes:
-      label: "🎯 Affected Component"
-      description: "Which part of the application is affected?"
+      label: Component
+      description: Select the affected component
       options:
-        - frontend (User Interface)
-        - backend (Server/API)
-        - database (Data Storage)
-        - infrastructure (System Setup)
+        - frontend
+        - backend
+        - database
+        - infrastructure
     validations:
       required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Severity
 
   - type: dropdown
     id: severity
     attributes:
-      label: "⚠️ Bug Severity"
-      description: "How severe is this bug?"
+      label: Severity Level
+      description: How severe is this bug?
       options:
-        - high (Application crash/data loss)
-        - medium (Feature broken but workaround exists)
+        - high (Critical functionality broken)
+        - medium (Important feature affected)
         - low (Minor issue/cosmetic problem)
     validations:
       required: true
 
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Details
+
   - type: textarea
     id: current_behavior
     attributes:
-      label: "🚨 Current Behavior"
-      description: "What's happening? Be specific and clear"
-      placeholder: |
-        Describe the bug:
-        - What exactly is not working?
-        - What error messages do you see?
-        - When does this happen?
+      label: Current Behavior
+      description: What is happening?
+      placeholder: Describe the bug in detail...
     validations:
       required: true
 
   - type: textarea
     id: expected_behavior
     attributes:
-      label: "✅ Expected Behavior"
-      description: "What should happen instead?"
-      placeholder: |
-        Describe what you expected:
-        - What should the application do?
-        - What is the correct behavior?
+      label: Expected Behavior
+      description: What should happen?
+      placeholder: Describe what you expected...
     validations:
       required: true
 
   - type: textarea
-    id: reproduction
+    id: steps
     attributes:
-      label: "🔄 Steps to Reproduce"
-      description: "Help us recreate this issue"
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
       placeholder: |
         1. Go to '...'
         2. Click on '...'
         3. Scroll down to '...'
         4. See error
-
-        Tip: Clear steps help us fix the bug faster!
     validations:
       required: true
 
   - type: textarea
-    id: additional
+    id: context
     attributes:
-      label: "📝 Additional Context"
-      description: "Any other information that might help? (optional)"
-      placeholder: |
-        Examples:
-        - Screenshots or videos
-        - Browser version if frontend issue
-        - Operating system
-        - When the issue started
-    validations:
-      required: false
+      label: Additional Context
+      description: Any other context about the problem?
+      placeholder: Add any other relevant information...

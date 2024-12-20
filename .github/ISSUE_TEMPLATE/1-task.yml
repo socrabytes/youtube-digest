@@ -1,82 +1,62 @@
-name: "✅ Task"
-description: "Create a new development task"
+name: "Task"
+description: Create a new task
 title: "[Task] "
+labels: []
 projects: ["socrabytes/6"]
-
 body:
   - type: markdown
     attributes:
       value: |
-        ### Component Labels (Add one)
-        `backend` | `frontend` | `database` | `infrastructure`
+        📋 Task Setup Confirmation
 
-        ### Priority Labels (Add one)
-        `high` | `medium` | `low`
-
-        ### Project Phase (Add to milestone)
-        Phase 1: Basic Infrastructure
-        Phase 2: Video Processing
-        Phase 3: Enhanced UX
-        Phase 4: Advanced Features
-
-  - type: checkboxes
-    id: confirmation
+  - type: dropdown
+    id: setup_confirmation
     attributes:
-      label: "📝 Task Setup Confirmation"
-      description: "Confirm you've set up the task properly"
+      label: Task Setup Confirmation
+      description: Please confirm you have added appropriate labels
       options:
-        - label: "I have added appropriate labels"
-          required: true
+        - "✅ Yes, I have added appropriate labels"
+        - "❌ No, I still need to add labels"
+      default: 1
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Task Description
+        Please provide a clear description of the task.
 
   - type: textarea
     id: description
     attributes:
-      label: "📋 Task Description"
-      description: "Technical requirements and expected outcome"
-      placeholder: |
-        Technical Details:
-        - Implementation requirements
-        - Dependencies/prerequisites
-        - Expected behavior/outcome
-        - Technical constraints
+      label: Description
+      placeholder: Describe the task here...
     validations:
       required: true
 
-  - type: textarea
-    id: acceptance
+  - type: markdown
     attributes:
-      label: "✅ Acceptance Criteria"
-      description: "Clear, testable requirements that define completion"
-      placeholder: |
-        - [ ] Implementation requirement 1
-        - [ ] Implementation requirement 2
-        - [ ] Tests added/updated
-        - [ ] Documentation updated if needed
+      value: |
+        ## Acceptance Criteria
+        What needs to be completed for this task to be considered done?
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: List the acceptance criteria...
     validations:
       required: true
 
-  - type: textarea
-    id: implementation
+  - type: markdown
     attributes:
-      label: "🛠️ Implementation Guide"
-      description: "Technical guidance for implementation"
-      placeholder: |
-        Branch Naming Convention:
-        <type>/<issue-number>-<short-description>
+      value: |
+        ## Implementation Guide
+        Provide any technical details or guidelines for implementation.
 
-        Types:
-        - feat/    : New features
-        - fix/     : Bug fixes
-        - docs/    : Documentation
-        - refactor/: Code refactoring
-        - test/    : Testing
-        - chore/   : Maintenance
-
-        Example: feat/42-add-video-processing
-
-        Technical Notes:
-        - Architecture considerations
-        - Design patterns
-        - Performance requirements
-    validations:
-      required: false
+  - type: textarea
+    id: implementation_guide
+    attributes:
+      label: Implementation Guide
+      placeholder: Add implementation details...
