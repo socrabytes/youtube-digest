@@ -15,14 +15,7 @@ body:
         - not a feature request or general question (use [GitHub Discussions](https://github.com/socrabytes/youtube-digest/discussions) instead)
         - reproducible and not specific to your local setup
 
-  - type: input
-    id: prerequisites
-    attributes:
-      label: 🐛 Report Prerequisites
-      description: Please confirm you have checked for exisitng issues 
-      placeholder: "Type 'Yes' to confirm"
-    validations:
-      required: true
+        > ⚠️ **Please confirm you have checked for existing issues before submitting this report.**
 
   - type: markdown
     attributes:

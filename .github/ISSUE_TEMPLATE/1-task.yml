@@ -1,13 +1,15 @@
-name: "📋 Task"
+name: 📋 Task
 description: "Create a new development task"
-title: "[Task] "
+title: "📋 "
 labels: []
 projects: ["socrabytes/6"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for creating a new task! Before proceeding, please ensure you add appropriate labels:
+        ## Thanks for creating a new task! 
+        
+        Before proceeding, please ensure you add appropriate labels:
 
         ### Component Labels (Add one)
         `backend` | `frontend` | `database` | `infrastructure`
