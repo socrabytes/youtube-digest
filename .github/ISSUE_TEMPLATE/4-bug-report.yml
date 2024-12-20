@@ -1,5 +1,5 @@
-name: "🐛 Bug Report"
-description: "Report an issue or unexpected behavior"
+name: 🐛 Bug Report
+description: Report an issue or unexpected behavior
 title: "🐛 "
 labels: ["bug"]
 projects: ["socrabytes/6"]
@@ -8,31 +8,33 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        ## Thanks for taking the time to fill out this 🐞 report!
 
         Before proceeding, please ensure the issue you're reporting is:
         - not a duplicate of an existing issue ([check open issues](https://github.com/socrabytes/youtube-digest/issues))
         - not a feature request or general question (use [GitHub Discussions](https://github.com/socrabytes/youtube-digest/discussions) instead)
         - reproducible and not specific to your local setup
 
-  - type: checkboxes
+  - type: input
     id: prerequisites
     attributes:
-      label: "Prerequisites"
-      options:
-        - label: "I have searched existing issues and this bug hasn't been reported yet"
-          required: true
+      label: 🐛 Report Prerequisites
+      description: Please confirm you have checked for exisitng issues 
+      placeholder: "Type 'Yes' to confirm"
+    validations:
+      required: true
 
   - type: markdown
     attributes:
       value: |
-        ## Affected Component
+        ## Bug Details
 
   - type: dropdown
     id: component
     attributes:
-      label: Component
+      label: Affected Component
       description: Select the affected component
+      multiple: true
       options:
         - frontend (User Interface)
         - backend (Server/API)
@@ -41,27 +43,18 @@ body:
     validations:
       required: true
 
-  - type: markdown
-    attributes:
-      value: |
-        ## Bug Severity
-
   - type: dropdown
     id: severity
     attributes:
-      label: Severity Level
+      label: Bug Severity
       description: How severe is this bug?
       options:
         - high (Application crash/data loss)
         - medium (Feature broken but workaround exists)
         - low (Minor issue/cosmetic problem)
+      default: 2
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        ## Bug Details
 
   - type: textarea
     id: current_behavior
