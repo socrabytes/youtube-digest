@@ -1,5 +1,5 @@
-name: "Task"
-description: Create a new task
+name: "📋 Task"
+description: "Create a new development task"
 title: "[Task] "
 labels: []
 projects: ["socrabytes/6"]
@@ -7,19 +7,27 @@ body:
   - type: markdown
     attributes:
       value: |
-        📋 Task Setup Confirmation
+        Thanks for creating a new task! Before proceeding, please ensure you add appropriate labels:
 
-  - type: dropdown
-    id: setup_confirmation
+        ### Component Labels (Add one)
+        `backend` | `frontend` | `database` | `infrastructure`
+
+        ### Priority Labels (Add one)
+        `high` | `medium` | `low`
+
+        ### Project Phase (Add to milestone)
+        Phase 1: Basic Infrastructure
+        Phase 2: Video Processing
+        Phase 3: Enhanced UX
+        Phase 4: Advanced Features
+
+  - type: checkboxes
+    id: confirmation
     attributes:
-      label: Task Setup Confirmation
-      description: Please confirm you have added appropriate labels
+      label: "Task Setup Confirmation"
       options:
-        - "✅ Yes, I have added appropriate labels"
-        - "❌ No, I still need to add labels"
-      default: 1
-    validations:
-      required: true
+        - label: "I have added appropriate labels"
+          required: true
 
   - type: markdown
     attributes:
@@ -31,7 +39,12 @@ body:
     id: description
     attributes:
       label: Description
-      placeholder: Describe the task here...
+      placeholder: |
+        Technical Details:
+        - Implementation requirements
+        - Dependencies/prerequisites
+        - Expected behavior/outcome
+        - Technical constraints
     validations:
       required: true
 
@@ -45,7 +58,11 @@ body:
     id: acceptance_criteria
     attributes:
       label: Acceptance Criteria
-      placeholder: List the acceptance criteria...
+      placeholder: |
+        - [ ] Implementation requirement 1
+        - [ ] Implementation requirement 2
+        - [ ] Tests added/updated
+        - [ ] Documentation updated if needed
     validations:
       required: true
 
@@ -59,4 +76,21 @@ body:
     id: implementation_guide
     attributes:
       label: Implementation Guide
-      placeholder: Add implementation details...
+      placeholder: |
+        Branch Naming Convention:
+        <type>/<issue-number>-<short-description>
+
+        Types:
+        - feat/    : New features
+        - fix/     : Bug fixes
+        - docs/    : Documentation
+        - refactor/: Code refactoring
+        - test/    : Testing
+        - chore/   : Maintenance
+
+        Example: feat/42-add-video-processing
+
+        Technical Notes:
+        - Architecture considerations
+        - Design patterns
+        - Performance requirements

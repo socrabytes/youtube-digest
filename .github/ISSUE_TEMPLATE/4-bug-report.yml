@@ -1,5 +1,5 @@
-name: "Bug Report"
-description: Report a bug or issue
+name: "🐛 Bug Report"
+description: "Report an issue or unexpected behavior"
 title: "[Bug] "
 labels: ["bug"]
 projects: ["socrabytes/6"]
@@ -8,19 +8,20 @@ body:
   - type: markdown
     attributes:
       value: |
-        🔍 Prerequisites
+        Thanks for taking the time to fill out this bug report!
 
-  - type: dropdown
+        Before proceeding, please ensure the issue you're reporting is:
+        - not a duplicate of an existing issue ([check open issues](https://github.com/socrabytes/youtube-digest/issues))
+        - not a feature request or general question (use [GitHub Discussions](https://github.com/socrabytes/youtube-digest/discussions) instead)
+        - reproducible and not specific to your local setup
+
+  - type: checkboxes
     id: prerequisites
     attributes:
-      label: Bug Report Prerequisites
-      description: Please confirm you have checked for existing issues
+      label: "Prerequisites"
       options:
-        - "✅ Yes, I have searched existing issues and this bug hasn't been reported yet"
-        - "❌ No, I need to check existing issues first"
-      default: 1
-    validations:
-      required: true
+        - label: "I have searched existing issues and this bug hasn't been reported yet"
+          required: true
 
   - type: markdown
     attributes:
@@ -33,10 +34,10 @@ body:
       label: Component
       description: Select the affected component
       options:
-        - frontend
-        - backend
-        - database
-        - infrastructure
+        - frontend (User Interface)
+        - backend (Server/API)
+        - database (Data Storage)
+        - infrastructure (System Setup)
     validations:
       required: true
 
@@ -51,8 +52,8 @@ body:
       label: Severity Level
       description: How severe is this bug?
       options:
-        - high (Critical functionality broken)
-        - medium (Important feature affected)
+        - high (Application crash/data loss)
+        - medium (Feature broken but workaround exists)
         - low (Minor issue/cosmetic problem)
     validations:
       required: true
@@ -66,8 +67,12 @@ body:
     id: current_behavior
     attributes:
       label: Current Behavior
-      description: What is happening?
-      placeholder: Describe the bug in detail...
+      description: What is happening? Be specific and clear
+      placeholder: |
+        Describe the bug:
+        - What exactly is not working?
+        - What error messages do you see?
+        - When does this happen?
     validations:
       required: true
 
@@ -75,8 +80,11 @@ body:
     id: expected_behavior
     attributes:
       label: Expected Behavior
-      description: What should happen?
-      placeholder: Describe what you expected...
+      description: What should happen instead?
+      placeholder: |
+        Describe what you expected:
+        - What should the application do?
+        - What is the correct behavior?
     validations:
       required: true
 
@@ -84,12 +92,14 @@ body:
     id: steps
     attributes:
       label: Steps to Reproduce
-      description: How can we reproduce this issue?
+      description: Help us recreate this issue
       placeholder: |
         1. Go to '...'
         2. Click on '...'
         3. Scroll down to '...'
         4. See error
+
+        Tip: Clear steps help us fix the bug faster!
     validations:
       required: true
 
@@ -97,5 +107,10 @@ body:
     id: context
     attributes:
       label: Additional Context
-      description: Any other context about the problem?
-      placeholder: Add any other relevant information...
+      description: Any other information that might help?
+      placeholder: |
+        Examples:
+        - Screenshots or videos
+        - Browser version if frontend issue
+        - Operating system
+        - When the issue started
