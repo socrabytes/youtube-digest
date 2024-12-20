@@ -7,14 +7,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## Thanks for creating a new task! 
+        ## Let's Add Some Tags to This Task! 🏷️
         
-        Before proceeding, please ensure you add appropriate labels:
+        To keep things organized, please add appropriate labels:
 
-        ### Component Labels (Add one)
+        ### Component Labels (choose one)
         `backend` | `frontend` | `database` | `infrastructure`
 
-        ### Priority Labels (Add one)
+        ### Priority Labels (choose one)
         `high` | `medium` | `low`
 
         ### Project Phase (Add to milestone)
