@@ -8,9 +8,9 @@ on:
 jobs:
   sort_issues:
     runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'bug')
     steps:
       - name: Move Bugs to Bug Column
-        if: github.event.label.name == 'bug'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -21,13 +21,7 @@ body:
         Phase 3: Enhanced UX
         Phase 4: Advanced Features
 
-  - type: checkboxes
-    id: confirmation
-    attributes:
-      label: "Task Setup Confirmation"
-      options:
-        - label: "I have added appropriate labels"
-          required: true
+        > ⚠️ Please ensure you've added appropriate labels before submitting the task.
 
   - type: markdown
     attributes:
