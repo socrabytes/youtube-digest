@@ -12,27 +12,113 @@ run-name: ${{ github.actor }} is managing the project - triggered by ${{ github.
 jobs:
   sort_issues:
     runs-on: ubuntu-latest
+    if: github.event.label.name == 'bug'
     steps:
-      - name: Move Bugs to 🪳Bugs Column
-        if: github.event.label.name == 'bug'
+      - name: Move to 🪳Bugs Column
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue edit ${{ github.event.issue.number }} \
-            --project "Youtube Video Digest" \
-            --project-column "🪳Bugs"
+          # Query for project ID and field info
+          gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org){
+                projectV2(number: $number) {
+                  id
+                  fields(first:20) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options {
+                          id
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f org="socrabytes" -F number=6 > project_data.json
+
+          # Get project and field IDs
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id' project_data.json)
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' project_data.json)
+          BUGS_OPTION_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="🪳Bugs") | .id' project_data.json)
+
+          # Update the status
+          gh api graphql -f query='
+            mutation (
+              $project: ID!
+              $item: ID!
+              $field: ID!
+              $value: String!
+            ) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $project
+                itemId: $item
+                fieldId: $field
+                value: { singleSelectOptionId: $value }
+              }) {
+                projectV2Item {
+                  id
+                }
+              }
+            }' -f project=$PROJECT_ID -f item=${{ github.event.issue.node_id }} -f field=$STATUS_FIELD_ID -f value=$BUGS_OPTION_ID
 
   handle_assignment:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'issues' && github.event.action == 'assigned' }}
     steps:
-      - name: Move to 📋Todo when Assigned
+      - name: Move to 📋Todo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue edit ${{ github.event.issue.number }} \
-            --project "Youtube Video Digest" \
-            --project-column "📋Todo"
+          # Query for project ID and field info
+          gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org){
+                projectV2(number: $number) {
+                  id
+                  fields(first:20) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options {
+                          id
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f org="socrabytes" -F number=6 > project_data.json
+
+          # Get project and field IDs
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id' project_data.json)
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' project_data.json)
+          TODO_OPTION_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="📋Todo") | .id' project_data.json)
+
+          # Update the status
+          gh api graphql -f query='
+            mutation (
+              $project: ID!
+              $item: ID!
+              $field: ID!
+              $value: String!
+            ) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $project
+                itemId: $item
+                fieldId: $field
+                value: { singleSelectOptionId: $value }
+              }) {
+                projectV2Item {
+                  id
+                }
+              }
+            }' -f project=$PROJECT_ID -f item=${{ github.event.issue.node_id }} -f field=$STATUS_FIELD_ID -f value=$TODO_OPTION_ID
 
   track_progress:
     runs-on: ubuntu-latest
@@ -43,11 +129,64 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ github.event.ref }}
         run: |
-          # Extract issue number from branch name (e.g., feat/42-add-feature -> 42)
+          # Extract issue number from branch name
           ISSUE_NUM=$(echo $BRANCH | grep -o '[0-9]\+' || echo '')
           
           if [ ! -z "$ISSUE_NUM" ]; then
-            gh issue edit $ISSUE_NUM \
-              --project "Youtube Video Digest" \
-              --project-column "🏗️In Progress"
+            # Get issue node ID
+            ISSUE_NODE_ID=$(gh api graphql -f query='
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  issue(number: $number) {
+                    id
+                  }
+                }
+              }' -f owner="socrabytes" -f repo="youtube-digest" -F number=$ISSUE_NUM | jq -r '.data.repository.issue.id')
+
+            # Query for project ID and field info
+            gh api graphql -f query='
+              query($org: String!, $number: Int!) {
+                organization(login: $org){
+                  projectV2(number: $number) {
+                    id
+                    fields(first:20) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options {
+                            id
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }' -f org="socrabytes" -F number=6 > project_data.json
+
+            # Get project and field IDs
+            PROJECT_ID=$(jq -r '.data.organization.projectV2.id' project_data.json)
+            STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' project_data.json)
+            IN_PROGRESS_OPTION_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="🏗️In Progress") | .id' project_data.json)
+
+            # Update the status
+            gh api graphql -f query='
+              mutation (
+                $project: ID!
+                $item: ID!
+                $field: ID!
+                $value: String!
+              ) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $project
+                  itemId: $item
+                  fieldId: $field
+                  value: { singleSelectOptionId: $value }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }' -f project=$PROJECT_ID -f item=$ISSUE_NODE_ID -f field=$STATUS_FIELD_ID -f value=$IN_PROGRESS_OPTION_ID
           fi
