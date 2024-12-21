@@ -18,9 +18,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue edit ${{ github.event.issue.number }} \
-            --project "Youtube Video Digest" \
-            --project-column "🪳Bugs"
+          PROJECT_ID="6"
+          COLUMN_NAME="🪳Bugs"
+          
+          # Get the item ID for the issue
+          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectsV2Items --jq '.projectsV2Items[0].id')
+          
+          if [ ! -z "$ITEM_ID" ]; then
+            COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
+            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Move to 🪳Bugs"
+          fi
 
   handle_assignment:
     runs-on: ubuntu-latest
@@ -30,9 +37,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue edit ${{ github.event.issue.number }} \
-            --project "Youtube Video Digest" \
-            --project-column "📋Todo"
+          PROJECT_ID="6"
+          COLUMN_NAME="📋Todo"
+          
+          # Get the item ID for the issue
+          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectsV2Items --jq '.projectsV2Items[0].id')
+          
+          if [ ! -z "$ITEM_ID" ]; then
+            COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
+            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Move to 📋Todo"
+          fi
 
   track_progress:
     runs-on: ubuntu-latest
@@ -45,9 +59,16 @@ jobs:
         run: |
           # Extract issue number from branch name (e.g., feat/42-add-feature -> 42)
           ISSUE_NUM=$(echo $BRANCH | grep -o '[0-9]\+' || echo '')
-          
+
           if [ ! -z "$ISSUE_NUM" ]; then
-            gh issue edit $ISSUE_NUM \
-              --project "Youtube Video Digest" \
-              --project-column "🏗️In Progress"
+            PROJECT_ID="6"
+            COLUMN_NAME="🏗️In Progress"
+            
+            # Get the item ID for the issue
+            ITEM_ID=$(gh issue view $ISSUE_NUM --json projectsV2Items --jq '.projectsV2Items[0].id')
+            
+            if [ ! -z "$ITEM_ID" ]; then
+              COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
+              gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Move to 🏗️In Progress"
+            fi
           fi
