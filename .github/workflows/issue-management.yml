@@ -22,11 +22,11 @@ jobs:
           COLUMN_NAME="🪳Bugs"
           
           # Get the item ID for the issue
-          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectsV2Items --jq '.projectsV2Items[0].id')
+          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectItems --jq '.projectItems[0].id')
           
           if [ ! -z "$ITEM_ID" ]; then
             COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
-            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Move to 🪳Bugs"
+            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Moved to $COLUMN_NAME"
           fi
 
   handle_assignment:
@@ -41,11 +41,11 @@ jobs:
           COLUMN_NAME="📋Todo"
           
           # Get the item ID for the issue
-          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectsV2Items --jq '.projectsV2Items[0].id')
+          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectItems --jq '.projectItems[0].id')
           
           if [ ! -z "$ITEM_ID" ]; then
             COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
-            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Move to 📋Todo"
+            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Moved to $COLUMN_NAME"
           fi
 
   track_progress:
@@ -65,10 +65,10 @@ jobs:
             COLUMN_NAME="🏗️In Progress"
             
             # Get the item ID for the issue
-            ITEM_ID=$(gh issue view $ISSUE_NUM --json projectsV2Items --jq '.projectsV2Items[0].id')
+            ITEM_ID=$(gh issue view $ISSUE_NUM --json projectItems --jq '.projectItems[0].id')
             
             if [ ! -z "$ITEM_ID" ]; then
               COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
-              gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Move to 🏗️In Progress"
+              gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Moved to $COLUMN_NAME"
             fi
           fi
