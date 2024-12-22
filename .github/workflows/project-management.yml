@@ -1,0 +1,26 @@
+name: Project Management
+
+on:
+  issues:
+    types: 
+      - labeled
+  
+jobs:
+  run_if_label_matches:
+    if: github.event.label.name == 'bug'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move Bugs to 🪳Bugs Column
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PROJECT_>>ID="6"
+          COLUMN_NAME="🪳Bugs"
+          
+          # Get the item ID for the issue
+          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectItems --jq '.projectItems[0].id')
+          
+          if [ ! -z "$ITEM_ID" ]; then
+            COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
+            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Moved to $COLUMN_NAME"
+          fi
