@@ -4,8 +4,8 @@ on:
   issues:
     types: [labeled, opened, assigned]
   create:
-    branches:
-      - '**'
+
+
 
 run-name: ${{ github.actor }} is managing the project - triggered by ${{ github.event_name }} ${{ github.event.issue.title || github.event.ref }}
 
