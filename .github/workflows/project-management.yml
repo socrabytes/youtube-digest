@@ -1,18 +1,24 @@
-name: Project Management
+name: Move Issues to Project Columns
 
 on:
   issues:
-    types: [labeled, assigned]
+    types: [labeled]
 
 permissions: 
   issues: write
   repository-projects: write
-  
+
+env:
+  PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"   # Static Project ID
+  STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"   # Static Field ID for "Status"
+  BUGS_OPTION_ID: "46438b8c"   # Static Option ID for "🪳Bugs"
+
 jobs:
   print_context:
     runs-on: ubuntu-latest
     steps:
-      - env:
+      - name: Print Event Context
+        env:
           EVENT_CONTEXT: ${{ toJson(github.event) }}
         run: |
           echo $EVENT_CONTEXT
@@ -21,17 +27,24 @@ jobs:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
     steps:
-      - name: Move Bugs to 🪳Bugs Column
+      - name: Move Issue to 🪳Bugs Column
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PROJECT_ID="6"
-          COLUMN_NAME="🪳Bugs"
-          
-          # Get the item ID for the issue
-          ITEM_ID=$(gh issue view ${{ github.event.issue.number }} --json projectItems --jq '.projectItems[0].id')
-          
-          if [ ! -z "$ITEM_ID" ]; then
-            COLUMN_ID=$(gh project field-list --project-id $PROJECT_ID --json fields --jq ".fields[] | select(.name == \"$COLUMN_NAME\") | .id")
-            gh project item-edit --id $ITEM_ID --field-id $COLUMN_ID --project-id $PROJECT_ID --text "Moved to $COLUMN_NAME"
+          # Get the Issue Number from the Event
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+
+          # Fetch the Project Item ID for the Issue
+          ITEM_ID=$(gh issue view $ISSUE_NUMBER --json projectItems --jq ".projectItems[] | select(.project.id == '${{ env.PROJECT_ID }}') | .id")
+
+          if [ -z "$ITEM_ID" ]; then
+            echo "Error: Could not retrieve Project Item ID for issue #$ISSUE_NUMBER."
+            exit 1
           fi
+
+          # Move the Issue to the 🪳Bugs Column
+          gh project item-edit \
+            --id "$ITEM_ID" \
+            --field-id "${{ env.STATUS_FIELD_ID }}" \
+            --project-id "${{ env.PROJECT_ID }}" \
+            --single-select-option-id "${{ env.BUGS_OPTION_ID }}"
