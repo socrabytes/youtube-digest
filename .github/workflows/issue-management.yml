@@ -4,8 +4,8 @@ on:
   issues:
     types: [labeled, opened, assigned]
   create:
-
-
+    branches:
+      - '**'
 
 run-name: ${{ github.actor }} is managing the project - triggered by ${{ github.event_name }} ${{ github.event.issue.title || github.event.ref }}
 
@@ -13,6 +13,8 @@ jobs:
   sort_issues:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
       - name: Move Bugs to 🪳Bugs Column
         if: github.event.label.name == 'bug'
         env:
@@ -33,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'issues' && github.event.action == 'assigned' }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
       - name: Move to 📋Todo when Assigned
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,6 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'create' && github.event.ref_type == 'branch' }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
       - name: Move Issue to 🏗️In Progress
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -22,6 +22,9 @@ jobs:
           EVENT_CONTEXT: ${{ toJson(github.event) }}
         run: |
           echo $EVENT_CONTEXT
+          echo "Issue Number: ${{ github.event.issue.number }}"
+          echo "Issue Title: ${{ github.event.issue.title }}"
+          echo "Repository: ${{ github.repository }}"
 
   run_if_label_matches:
     if: github.event.label.name == 'bug'
@@ -33,6 +36,7 @@ jobs:
         run: |
           # Get the Issue Number from the Event
           ISSUE_NUMBER=${{ github.event.issue.number }}
+          REPO=${{ github.repository }}
 
           # Fetch the Project Item ID for the Issue
           ITEM_ID=$(gh issue view $ISSUE_NUMBER --json projectItems --jq ".projectItems[] | select(.project.id == '${{ env.PROJECT_ID }}') | .id")
