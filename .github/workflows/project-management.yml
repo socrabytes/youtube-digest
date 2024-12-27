@@ -26,13 +26,12 @@ jobs:
   run_if_label_matches:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
+    permissions:
+      repository-projects: write
     steps:
       - name: Move Issue to 🪳Bugs Column
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        permissions: 
-          repository-projects: write
-
         run: |
           # Get the Issue Number from the Event
           ISSUE_NUMBER=${{ github.event.issue.number }}
