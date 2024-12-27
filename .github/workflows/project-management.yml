@@ -39,6 +39,8 @@ jobs:
 
           # Fetch the Project Item ID for the Issue
           ITEM_ID=$(gh issue view $ISSUE_NUMBER --json projectItems --jq ".projectItems[] | select(.project.id == '${{ env.PROJECT_ID }}') | .id")
+          
+          echo "ITEM_id: $ITEM_ID"
 
           if [ -z "$ITEM_ID" ]; then
             echo "Error: Could not retrieve Project Item ID for issue #$ISSUE_NUMBER."
