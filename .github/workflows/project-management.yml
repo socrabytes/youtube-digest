@@ -4,10 +4,6 @@ on:
   issues:
     types: [labeled]
 
-permissions: 
-  issues: write
-  repository-projects: write
-
 env:
   PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"   # Static Project ID
   STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"   # Static Field ID for "Status"
@@ -25,8 +21,7 @@ jobs:
           echo "Issue Number: ${{ github.event.issue.number }}"
           echo "Issue Title: ${{ github.event.issue.title }}"
           echo "Repository: ${{ github.repository }}"
-          echo "This is `gh project list`" 
-          gh project list
+          echo "Label Name: ${{ github.event.label.name }}"
 
   run_if_label_matches:
     if: github.event.label.name == 'bug'
@@ -35,6 +30,9 @@ jobs:
       - name: Move Issue to 🪳Bugs Column
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        permissions: 
+          repository-projects: write
+
         run: |
           # Get the Issue Number from the Event
           ISSUE_NUMBER=${{ github.event.issue.number }}
