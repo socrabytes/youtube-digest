@@ -1,0 +1,44 @@
+name: "Auto-Bug-Column"
+
+on:
+  issues:
+    types: [labeled]  # Add "opened" if you want to catch issues that start labeled via a template
+
+permissions:
+  contents: read
+  repository-projects: write
+
+jobs:
+  move_bug_issues:
+    if: github.event.label.name == 'bug'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}              # Required for gh CLI calls
+      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # Static Project ID
+      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # Static Field ID for "Status" 
+      BUGS_OPTION_ID: "46438b8c"                         # Static Option ID for "🪳Bugs"
+    steps:
+      - name: Show Issue Info
+        run: |
+          echo "Action: ${{ github.event.action }}"
+          echo "Issue Number: ${{ github.event.issue.number }}"
+          echo "Labels: ${{ toJson(github.event.issue.labels) }}"
+
+      - name: Retrieve Project Item
+        run: |
+          ITEM_ID=$(gh issue view "${{ github.event.issue.number }}" \
+            --json projectItems \
+            --jq ".projectItems[] | select(.project.id == \"$PROJECT_ID\") | .id")
+
+          echo "ITEM_ID: $ITEM_ID"
+          echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
+
+      - name: Move to Bugs Column
+        if: env.ITEM_ID != ''
+        run: |
+          echo "Moving Issue #${{ github.event.issue.number }} to the Bugs column."
+          gh project item-edit \
+            --id "$ITEM_ID" \
+            --field-id "$STATUS_FIELD_ID" \
+            --project-id "$PROJECT_ID" \
+            --single-select-option-id "$BUGS_OPTION_ID"
