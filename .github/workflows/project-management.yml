@@ -28,6 +28,7 @@ jobs:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
     permissions:
+      issues: read
       repository-projects: write
     steps:
       - name: Move Issue to 🪳Bugs Column
