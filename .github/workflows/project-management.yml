@@ -22,11 +22,13 @@ jobs:
           echo "Issue Title: ${{ github.event.issue.title }}"
           echo "Repository: ${{ github.repository }}"
           echo "Label Name: ${{ github.event.label.name }}"
+          echo "This is the login of the owner of the issue: ${{ github.event.issue.user.login }}" # May need to replace with owner of repo github.repository_owner
 
   run_if_label_matches:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
     permissions:
+      issues: read
       repository-projects: write
     steps:
       - name: Move Issue to 🪳Bugs Column
@@ -40,7 +42,7 @@ jobs:
           # Fetch the Project Item ID for the Issue
           ITEM_ID=$(gh issue view $ISSUE_NUMBER --json projectItems --jq ".projectItems[] | select(.project.id == '${{ env.PROJECT_ID }}') | .id")
           
-          echo "ITEM_id: $ITEM_ID"
+          echo "ITEM_ID: $ITEM_ID"
 
           if [ -z "$ITEM_ID" ]; then
             echo "Error: Could not retrieve Project Item ID for issue #$ISSUE_NUMBER."

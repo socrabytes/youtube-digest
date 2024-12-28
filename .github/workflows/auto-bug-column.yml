@@ -4,15 +4,16 @@ on:
   issues:
     types: [labeled]  # Add "opened" if you want to catch issues that start labeled via a template
 
-permissions:
-  contents: read
-  repository-projects: write
-
 jobs:
   move_bug_issues:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
+    permissions: 
+      contents: read
+      issues: read
+      repository-projects: write
     env:
+      EVENT_CONTEXT: ${{ toJson(github.event) }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}              # Required for gh CLI calls
       PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # Static Project ID
       STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # Static Field ID for "Status" 
@@ -22,7 +23,6 @@ jobs:
         run: |
           echo "Action: ${{ github.event.action }}"
           echo "Issue Number: ${{ github.event.issue.number }}"
-          echo "Labels: ${{ toJson(github.event.issue.labels) }}"
 
       - name: Retrieve Project Item
         run: |
