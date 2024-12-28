@@ -25,10 +25,17 @@ jobs:
           echo "Issue Number: ${{ github.event.issue.number }}"
 
       - name: Retrieve Project Item
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          PROJECT_ID: ${{ env.PROJECT_ID }}
         run: |
-          ITEM_ID=$(gh issue view "${{ github.event.issue.number }}" \
+          echo "Looking up project item for issue #$ISSUE_NUMBER in $REPO"
+          ITEM_ID=$(gh issue view "ISSUE_NUMBER" \
+            --rep "$REPO" \
             --json projectItems \
-            --jq ".projectItems[] | select(.project.id == \"$PROJECT_ID\") | .id")
+            --jq ".projectItems[] | select(.project.id == \"$PROJECT_ID\") | .id"
+          )
 
           echo "ITEM_ID: $ITEM_ID"
           echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
