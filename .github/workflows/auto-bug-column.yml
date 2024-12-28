@@ -21,7 +21,7 @@ jobs:
         run: |
           echo "Action: ${{ github.event.action }}"
           echo "Issue Number: ${{ github.event.issue.number }}"
-          echo "Labels: ${{ toJson(github.event.issue.labels) }}"
+
 
       - name: Retrieve Project Item
         run: |
