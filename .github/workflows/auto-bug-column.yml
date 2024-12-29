@@ -27,6 +27,7 @@ jobs:
           echo "Action: ${{ github.event.action }}"
           echo "Issue Number: ${{ github.event.issue.number }}"
           echo "Owner: $OWNER"
+          echo "${{ github.repository_owner }} is the owner of the repository."
 
       - name: Retrieve Project Item
         run: |
