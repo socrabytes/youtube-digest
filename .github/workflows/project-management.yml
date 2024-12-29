@@ -23,6 +23,7 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Label Name: ${{ github.event.label.name }}"
           echo "This is the login of the owner of the issue: ${{ github.event.issue.user.login }}" # May need to replace with owner of repo github.repository_owner
+          echo "This is the Repository Owner: ${{ github.repository_owner }}"
 
   run_if_label_matches:
     if: github.event.label.name == 'bug'
