@@ -13,37 +13,39 @@ jobs:
       issues: read
       repository-projects: write
     env:
-      EVENT_CONTEXT: ${{ toJson(github.event) }}
+      EVENT_CONTEXT: ${{ toJson(github.event) }}         # Required to access GitHub Context
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}              # Required for gh CLI calls
-      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # Static Project ID
-      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # Static Field ID for "Status" 
-      BUGS_OPTION_ID: "46438b8c"                         # Static Option ID for "🪳Bugs"
+      OWNER: ${{ github.repository_owner }}              # Repository Owner
+      ISSUE_NUMBER: ${{ github.event.issue.number }}     # Issue Number
+      PROJECT_#: "6"                                     # (static) Project Number
+      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # (static) Project ID
+      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # (static) Field ID for "Status" 
+      BUGS_OPTION_ID: "46438b8c"                         # (static) Option ID for "🪳Bugs"
     steps:
       - name: Show Issue Info
         run: |
           echo "Action: ${{ github.event.action }}"
           echo "Issue Number: ${{ github.event.issue.number }}"
+          echo "Owner: $OWNER"
+          echo "${{ github.repository_owner }} is the owner of the repository."
 
       - name: Retrieve Project Item
-        env:
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          REPO: ${{ github.repository }}
-          PROJECT_ID: ${{ env.PROJECT_ID }}
         run: |
-          echo "Looking up project item for issue #$ISSUE_NUMBER in $REPO"
-          ITEM_ID=$(gh issue view "ISSUE_NUMBER" \
-            --rep "$REPO" \
-            --json projectItems \
-            --jq ".projectItems[] | select(.project.id == \"$PROJECT_ID\") | .id"
+          echo "Looking up project item for issue #$ISSUE_NUMBER"
+
+          ITEM_ID=$(gh project item-list "$PROJECT_#" \
+            --owner "$OWNER" \
+            --format json \
+            --jq '.items[] | select(.content.number == $ISSUE_NUMBER) | .id'
           )
 
-          echo "ITEM_ID: $ITEM_ID"
           echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
 
       - name: Move to Bugs Column
         if: env.ITEM_ID != ''
         run: |
-          echo "Moving Issue #${{ github.event.issue.number }} to the Bugs column."
+          echo "Moving Issue #$ISSUE_NUMBER to 🪳Bugs column."
+
           gh project item-edit \
             --id "$ITEM_ID" \
             --field-id "$STATUS_FIELD_ID" \
