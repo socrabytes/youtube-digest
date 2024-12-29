@@ -33,6 +33,8 @@ jobs:
         run: |
           echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
 
+          gh --version
+
           ITEM_ID=$(gh project item-list $PROJECT_NUMBER \
             --owner "$OWNER" \
             --format json \
