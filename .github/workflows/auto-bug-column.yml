@@ -22,6 +22,9 @@ jobs:
       STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # (static) Field ID for "Status" 
       BUGS_OPTION_ID: "46438b8c"                         # (static) Option ID for "🪳Bugs"
     steps:
+      - name: Authenticate with GitHub
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+        
       - name: Show Issue Info
         run: |
           echo "Action: ${{ github.event.action }}"
