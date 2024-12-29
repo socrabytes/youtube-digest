@@ -34,8 +34,9 @@ jobs:
           echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
 
           gh --version
+          gh project item-list 6 --owner "socrabytes" --format json --jq '.items[] | select(.content.number == 20) | .id'
 
-          ITEM_ID=$(gh project item-list $PROJECT_NUMBER \
+          ITEM_ID=$(gh project item-list "$PROJECT_NUMBER" \
             --owner "$OWNER" \
             --format json \
             --jq '.items[] | select(.content.number == $ISSUE_NUMBER) | .id'
