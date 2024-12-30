@@ -14,32 +14,24 @@ jobs:
       repository-projects: write
     env:
       EVENT_CONTEXT: ${{ toJson(github.event) }}         # Required to access GitHub Context
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}              # Required for gh CLI calls
-      OWNER: ${{ github.repository_owner }}              # Repository Owner
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}              # Required for gh CLI calls
+      OWNER: "socrabytes"                                  # Repository Owner
       ISSUE_NUMBER: ${{ github.event.issue.number }}     # Issue Number
       PROJECT_NUMBER: "6"                                     # (static) Project Number
       PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # (static) Project ID
       STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # (static) Field ID for "Status" 
       BUGS_OPTION_ID: "46438b8c"                         # (static) Option ID for "🪳Bugs"
     steps:
-      - name: Authenticate with GitHub
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-        
       - name: Show Issue Info
         run: |
           echo "Action: ${{ github.event.action }}"
           echo "Issue Number: ${{ github.event.issue.number }}"
           echo "Owner: $OWNER"
           echo "${{ github.repository_owner }} is the owner of the repository."
-          gh project item-list 6 --owner "socrabytes" --format json --jq '.items[] | select(.content.number == 20) | .id'
-
 
       - name: Retrieve Project Item
         run: |
           echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
-
-          gh --version
-          gh project item-list 6 --owner "socrabytes" --format json --jq '.items[] | select(.content.number == 20) | .id'
 
           ITEM_ID=$(gh project item-list "$PROJECT_NUMBER" \
             --owner "$OWNER" \
