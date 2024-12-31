@@ -22,13 +22,6 @@ jobs:
       STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # (static) Field ID for "Status" 
       BUGS_OPTION_ID: "46438b8c"                         # (static) Option ID for "🪳Bugs"
     steps:
-      - name: Show Issue Info
-        run: |
-          echo "Action: ${{ github.event.action }}"
-          echo "Issue Number: ${{ github.event.issue.number }}"
-          echo "Owner: $OWNER"
-          echo "${{ github.repository_owner }} is the owner of the repository."
-
       - name: Retrieve Project Item
         run: |
           echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
