@@ -15,7 +15,7 @@ jobs:
     env:
       EVENT_CONTEXT: ${{ toJson(github.event) }}         # Required to access GitHub Context
       GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}              # Required for gh CLI calls
-      OWNER: socrabytes                                  # Repository Owner
+      OWNER: "socrabytes"                                  # Repository Owner
       ISSUE_NUMBER: ${{ github.event.issue.number }}     # Issue Number
       PROJECT_NUMBER: "6"                                     # (static) Project Number
       PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # (static) Project ID
