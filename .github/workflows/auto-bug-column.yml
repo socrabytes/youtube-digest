@@ -34,7 +34,7 @@ jobs:
           echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
 
           ITEM_ID=$(gh project item-list "$PROJECT_NUMBER" \
-            --owner "$OWNER" \
+            --owner "@me" \
             --format json \
             --jq '.items[] | select(.content.number == $ISSUE_NUMBER) | .id'
           )
