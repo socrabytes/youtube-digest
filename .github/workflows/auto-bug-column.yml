@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions: 
       contents: read
-      org: read
-      discussions: read
       issues: read
       repository-projects: write
     env:
