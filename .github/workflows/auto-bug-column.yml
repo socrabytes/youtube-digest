@@ -28,17 +28,20 @@ jobs:
           echo "Issue Number: ${{ github.event.issue.number }}"
           echo "Owner: $OWNER"
           echo "${{ github.repository_owner }} is the owner of the repository."
-          gh project item-list 6 --owner "socrabytes" --format json --jq '.items[] | select(.content.number == 20) | .id' | cat
 
       - name: Retrieve Project Item
         run: |
           echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
 
-          ITEM_ID=$(gh project item-list "$PROJECT_NUMBER" \
-            --owner "$OWNER" \
-            --format json \
-            --jq '.items[] | select(.content.number == "$ISSUE_NUMBER") | .id'
-          )
+          ITEM_ID=$(
+            gh project item-list "$PROJECT_NUMBER" \
+              --owner "$OWNER" \
+              --limit 100 \
+              --format json \
+              --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
+            )
+            
+          echo "Computed ITEM_ID=$ITEM_ID"
 
           echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
 
