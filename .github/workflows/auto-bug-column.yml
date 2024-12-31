@@ -38,8 +38,10 @@ jobs:
             gh project item-list "$PROJECT_NUMBER" \
               --owner "$OWNER" \
               --format json \
-              --jq '.items[] | select(.content.number == "$ISSUE_NUMBER") | .id'
+              --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
             )
+            
+          echo "Computed ITEM_ID=$ITEM_ID"
 
           echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
 
