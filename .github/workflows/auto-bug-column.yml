@@ -4,7 +4,7 @@ on:
   issues:
     types: [labeled]  # Add "opened" if you want to catch issues that start labeled via a template
 
-jobs:
+                                                                                                                                               jobs:
   move_bug_issues:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
@@ -28,7 +28,6 @@ jobs:
           echo "Issue Number: ${{ github.event.issue.number }}"
           echo "Owner: $OWNER"
           echo "${{ github.repository_owner }} is the owner of the repository."
-          gh project item-list 6 --owner "socrabytes" --format json --jq '.items[] | select(.content.number == 20) | .id' | cat
 
       - name: Retrieve Project Item
         run: |
@@ -37,6 +36,7 @@ jobs:
           ITEM_ID=$(
             gh project item-list "$PROJECT_NUMBER" \
               --owner "$OWNER" \
+              --limit 100 \
               --format json \
               --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
             )
