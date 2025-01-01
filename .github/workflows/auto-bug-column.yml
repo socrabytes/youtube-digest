@@ -3,8 +3,7 @@ name: "Auto-Bug-Column"
 on:
   issues:
     types: [labeled]  # Add "opened" if you want to catch issues that start labeled via a template
-
-                                                                                                                                               jobs:
+jobs:                                                                                                                                              jobs:
   move_bug_issues:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
@@ -36,7 +35,7 @@ on:
           ITEM_ID=$(
             gh project item-list "$PROJECT_NUMBER" \
               --owner "$OWNER" \
-              --limit 100 \
+              --limit 100
               --format json \
               --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
             )
