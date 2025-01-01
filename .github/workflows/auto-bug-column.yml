@@ -3,6 +3,7 @@ name: "Auto-Bug-Column"
 on:
   issues:
     types: [labeled]  # Add "opened" if you want to catch issues that start labeled via a template
+
 jobs:                                                                                                                                              jobs:
   move_bug_issues:
     if: github.event.label.name == 'bug'
