@@ -1,59 +1,52 @@
-name: "Auto-Bug-Column"
+name: "🐛 Auto Bug Column Management"
+
+# Moves issues labeled as "bug" to the Bugs column in the project board
+# This workflow is triggered after the bug template adds the label
 
 on:
   issues:
-    types: [labeled]  # Add "opened" if you want to catch issues that start labeled via a template
+    types: [labeled]
 
 jobs:
   move_bug_issues:
+    name: Move Bug to Project Column
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
     permissions: 
-      contents: read
       issues: read
       repository-projects: write
     env:
-      EVENT_CONTEXT: ${{ toJson(github.event) }}         # Required to access GitHub Context
-      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}              # Required for gh CLI calls
-      OWNER: "socrabytes"                                  # Repository Owner
-      ISSUE_NUMBER: ${{ github.event.issue.number }}     # Issue Number
-      PROJECT_NUMBER: "6"                                     # (static) Project Number
-      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"                 # (static) Project ID
-      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"  # (static) Field ID for "Status" 
-      BUGS_OPTION_ID: "46438b8c"                         # (static) Option ID for "🪳Bugs"
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      OWNER: "socrabytes"
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      PROJECT_NUMBER: "6"
+      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"
+      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"
+      BUGS_OPTION_ID: "46438b8c"
+
     steps:
-      - name: Show Issue Info
-        run: |
-          echo "Action: ${{ github.event.action }}"
-          echo "Issue Number: ${{ github.event.issue.number }}"
-          echo "Owner: $OWNER"
-          echo "${{ github.repository_owner }} is the owner of the repository."
-
       - name: Retrieve Project Item
+        id: get-item
         run: |
-          echo "Looking up project item for issue $ISSUE_NUMBER in project $PROJECT_NUMBER."
-
           ITEM_ID=$(
             gh project item-list "$PROJECT_NUMBER" \
               --owner "$OWNER" \
               --limit 100 \
               --format json \
               --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
-            )
-            
-          echo "Computed ITEM_ID=$ITEM_ID"
-
-          echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
+          )
+          
+          if [ -n "$ITEM_ID" ]; then
+            echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
+          else
+            echo "::warning::Issue #$ISSUE_NUMBER not found in project $PROJECT_NUMBER"
+          fi
 
       - name: Move to Bugs Column
         if: env.ITEM_ID != ''
         run: |
-          echo "Moving Issue #$ISSUE_NUMBER to 🪳Bugs column using ITEM_ID=$ITEM_ID."
-
           gh project item-edit \
             --id "$ITEM_ID" \
             --field-id "$STATUS_FIELD_ID" \
             --project-id "$PROJECT_ID" \
             --single-select-option-id "$BUGS_OPTION_ID"
-
-          echo "Successfully moved issue #$ISSUE_NUMBER to 🪳Bugs clumn."
