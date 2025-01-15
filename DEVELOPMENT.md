@@ -35,6 +35,42 @@
    - [ ] User preferences
    - [ ] Digest customization
 
+## 🤖 Project Automation
+
+### Issue Management
+- **Issue Creation**: Use task template for structured information
+- **Project Board**: Automated column movement based on actions
+- **Branch Creation**: Use UI "Create branch" feature with format:
+  - `<type>/<issue-number>-<description>`
+  - Types: feat, fix, docs, refactor, test, chore
+
+### Workflow States
+1. 🔄 **Backlog**
+   - New issues added to project
+   - Awaiting review and requirements check
+
+2. 📋 **Todo**
+   - Requirements verified
+   - Issue assigned to developer
+   - Ready for development
+
+3. 🏗️ **In Progress**
+   - Branch created for issue
+   - Active development ongoing
+
+4. 🪳 **Bugs**
+   - Issues labeled as "bug"
+   - Prioritized for fixing
+
+5. ✅ **Done**
+   - Work completed
+   - Changes merged
+
+### Commit Guidelines
+- Format: `<emoji> (scope): <message>`
+- Add paths or specific changes in commit body
+- Use Gitmoji for consistent emoji usage
+
 ## 📋 Technical Debt
 1. **Testing**
    - [ ] Unit tests for video processing

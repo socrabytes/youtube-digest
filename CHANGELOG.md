@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added
+- GitHub Project automation workflows
+  - Auto-move issues labeled as "bug" to Bugs column
+  - Auto-move assigned issues to Todo column
+  - Auto-move issues to In Progress when branch created
+- Structured issue templates with project integration
+  - Task template with component and priority labels
+  - Bug report template with detailed reproduction steps
+- Project board automation with defined columns:
+  - Backlog: New issues
+  - Todo: Approved and assigned
+  - In Progress: Active development
+  - Bugs: Issue tracking
+  - Done: Completed work
+
+### Changed
+- Optimized GitHub Actions workflows
+- Improved issue template structure
+- Enhanced project board organization
+
 ## [0.2.0] - 2024-12-13
 ### Added
 - Containerized development environment
