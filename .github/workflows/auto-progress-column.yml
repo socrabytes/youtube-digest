@@ -1,0 +1,65 @@
+name: "🏗️ Auto Progress Column"
+
+# Moves issues to In Progress when a branch is created
+# This workflow is triggered when a new branch is created
+
+on:
+  create:
+    branches:
+      - '**'
+
+jobs:
+  handle_branch_creation:
+    name: Update Issue Status on Branch Creation
+    if: github.event_name == 'create' && github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      OWNER: "socrabytes"
+      PROJECT_NUMBER: "6"
+      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"
+      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"
+      IN_PROGRESS_OPTION_ID: "47fc9ee4"  # 🏗️In Progress column
+
+    steps:
+      - name: Extract Issue Number
+        id: extract-issue
+        run: |
+          # Extract issue number from branch name (assuming format includes issue number)
+          BRANCH_NAME="${{ github.event.ref }}"
+          if [[ $BRANCH_NAME =~ [0-9]+ ]]; then
+            ISSUE_NUMBER=${BASH_REMATCH[0]}
+            echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+          else
+            echo "::warning::No issue number found in branch name: $BRANCH_NAME"
+            exit 0
+          fi
+
+      - name: Retrieve Project Item
+        if: env.ISSUE_NUMBER != ''
+        run: |
+          ITEM_ID=$(
+            gh project item-list "$PROJECT_NUMBER" \
+              --owner "$OWNER" \
+              --limit 100 \
+              --format json \
+              --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
+          )
+          
+          if [ -n "$ITEM_ID" ]; then
+            echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
+          else
+            echo "::warning::Issue #$ISSUE_NUMBER not found in project $PROJECT_NUMBER"
+          fi
+
+      - name: Move to In Progress Column
+        if: env.ITEM_ID != ''
+        run: |
+          gh project item-edit \
+            --id "$ITEM_ID" \
+            --field-id "$STATUS_FIELD_ID" \
+            --project-id "$PROJECT_ID" \
+            --single-select-option-id "$IN_PROGRESS_OPTION_ID"

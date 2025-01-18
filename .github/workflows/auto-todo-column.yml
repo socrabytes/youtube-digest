@@ -1,0 +1,52 @@
+name: "📋 Auto Todo Column"
+
+# Moves assigned issues to Todo column in the project board
+# This workflow is triggered when an issue is assigned
+
+on:
+  issues:
+    types: [assigned]
+
+jobs:
+  handle_assignment:
+    name: Move Assigned Issue to Todo
+    if: github.event_name == 'issues' && github.event.action == 'assigned'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      OWNER: "socrabytes"
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      PROJECT_NUMBER: "6"
+      PROJECT_ID: "PVT_kwHOBpT7s84Auc0_"
+      STATUS_FIELD_ID: "PVTSSF_lAHOBpT7s84Auc0_zglCzjk"
+      TODO_OPTION_ID: "f75ad846"  # 📋Todo column
+
+    steps:
+      - name: Retrieve Project Item
+        id: get-item
+        run: |
+          ITEM_ID=$(
+            gh project item-list "$PROJECT_NUMBER" \
+              --owner "$OWNER" \
+              --limit 100 \
+              --format json \
+              --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id"
+          )
+          
+          if [ -n "$ITEM_ID" ]; then
+            echo "ITEM_ID=$ITEM_ID" >> $GITHUB_ENV
+          else
+            echo "::warning::Issue #$ISSUE_NUMBER not found in project $PROJECT_NUMBER"
+          fi
+
+      - name: Move to Todo Column
+        if: env.ITEM_ID != ''
+        run: |
+          gh project item-edit \
+            --id "$ITEM_ID" \
+            --field-id "$STATUS_FIELD_ID" \
+            --project-id "$PROJECT_ID" \
+            --single-select-option-id "$TODO_OPTION_ID"
