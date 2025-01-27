@@ -44,6 +44,13 @@
   - `<type>/<issue-number>-<description>`
   - Types: feat, fix, docs, refactor, test, chore
 
+### Workflow Structure
+- **Issue Creation via UI Template**: Automatically added to Backlog
+- **Bug Labeling**: `auto-bug-column.yml` moves to Bugs column
+- **Issue Assignment**: `auto-todo-column.yml` moves to Todo
+- **Branch Creation**: `auto-progress-column.yml` moves to In Progress
+- **PR Merge**: Automatically moves to Done
+
 ### Workflow States
 1. 🔄 **Backlog**
    - New issues added to project

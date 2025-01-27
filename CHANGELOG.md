@@ -18,6 +18,10 @@
   - Done: Completed work
 
 ### Changed
+- Split issue management workflow into focused components:
+  - `auto-todo-column.yml` for assignment handling
+  - `auto-progress-column.yml` for branch creation
+- Removed consolidated `issue-management.yml` workflow
 - Optimized GitHub Actions workflows
 - Improved issue template structure
 - Enhanced project board organization
