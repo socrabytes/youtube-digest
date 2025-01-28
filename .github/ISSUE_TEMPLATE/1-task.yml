@@ -28,6 +28,21 @@ body:
   - type: markdown
     attributes:
       value: |
+        ## User Story
+        Please provide the user story in the format below.
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      placeholder: |
+        As a user,
+        I want [feature/capability]
+        So that [benefit/value]
+
+  - type: markdown
+    attributes:
+      value: |
         ## Task Description
         Please provide a clear description of the task.
 
