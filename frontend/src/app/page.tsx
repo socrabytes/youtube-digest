@@ -28,7 +28,8 @@ export default function Home() {
       });
 
       if (!createResponse.ok) {
-        throw new Error('Failed to submit video');
+        const errorData = await createResponse.json();
+        throw new Error(errorData.detail || 'Failed to submit video');
       }
 
       const newVideo = await createResponse.json();
@@ -53,6 +54,7 @@ export default function Home() {
 
       setUrl('');
     } catch (err) {
+      console.error('Error submitting video:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
@@ -84,7 +86,9 @@ export default function Home() {
             </button>
           </div>
           {error && (
-            <p className="mt-2 text-red-600 text-sm">{error}</p>
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
           )}
         </form>
 

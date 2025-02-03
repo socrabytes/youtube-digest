@@ -17,8 +17,12 @@ class Video(Base):
     # Video metadata
     duration = Column(Integer, nullable=True)
     view_count = Column(BigInteger, nullable=True)
+    subscriber_count = Column(Integer, nullable=True)
     channel_id = Column(String(50), nullable=True)
     channel_title = Column(String(255), nullable=True)
+    upload_date = Column(String(8), nullable=True)  # YYYYMMDD format
+    like_count = Column(BigInteger, nullable=True)
+    description = Column(Text, nullable=True)
     
     # Content analysis
     _tags = Column("tags", Text, nullable=True)

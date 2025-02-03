@@ -6,11 +6,15 @@ export interface Video {
   thumbnail_url?: string;
   duration?: number;
   view_count?: number;
+  subscriber_count?: number;
   channel_id?: string;
   channel_title?: string;
+  upload_date?: string;
+  like_count?: number;
+  description?: string;
   tags?: string[];
   categories?: string[];
-  transcript?: string;
+  transcript?: string | null;
   summary?: string;
   processed?: boolean;
   error_message?: string;

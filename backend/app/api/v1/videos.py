@@ -7,7 +7,13 @@ import logging
 
 from app.db.database import get_db
 from app.models.video import Video as VideoModel
-from app.services.video_processor import VideoProcessor
+from app.services.video_processor import (
+    VideoProcessor,
+    VideoProcessingError,
+    VideoNotFoundError,
+    PrivateVideoError,
+    RateLimitError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +35,12 @@ class VideoResponse(BaseModel):
     # Video metadata
     duration: Optional[int]
     view_count: Optional[int]
+    subscriber_count: Optional[int]
     channel_id: Optional[str]
     channel_title: Optional[str]
+    upload_date: Optional[str]
+    like_count: Optional[int]
+    description: Optional[str]
     
     # Content analysis
     tags: Optional[List[str]]
@@ -57,8 +67,8 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
     processor = VideoProcessor()
     
     try:
-        # Extract video information
-        video_info = processor.extract_video_info(str(video.url))
+        # Extract video information with validation
+        video_info = processor.validate_and_extract_info(str(video.url))
         logger.info("Successfully extracted video info")
         
         # Check if video already exists
@@ -85,8 +95,12 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
                 thumbnail_url=video_info.get('thumbnail_url'),
                 duration=video_info.get('duration'),
                 view_count=video_info.get('view_count'),
+                subscriber_count=video_info.get('subscriber_count'),
                 channel_id=video_info.get('channel_id'),
                 channel_title=video_info.get('channel_title'),
+                upload_date=video_info.get('upload_date'),
+                like_count=video_info.get('like_count'),
+                description=video_info.get('description'),
                 tags=video_info.get('tags', []),
                 categories=video_info.get('categories', []),
                 transcript=video_info.get('transcript'),
@@ -94,27 +108,40 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
                 error_message=None
             )
             db.add(db_video)
-        
-        logger.info("Saving to database")
+            
         db.commit()
         db.refresh(db_video)
-        logger.info(f"Successfully saved video with ID: {db_video.id}")
-        
         return db_video
         
-    except Exception as e:
-        logger.error(f"Error processing video: {str(e)}", exc_info=True)
-        error_msg = str(e)
-        
-        # Rollback the session to handle any transaction errors
-        db.rollback()
-        
+    except VideoNotFoundError as e:
+        logger.error(f"Video not found error: {str(e)}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Video not found or no longer available: {str(e)}"
+        )
+    except PrivateVideoError as e:
+        logger.error(f"Private video error: {str(e)}")
+        raise HTTPException(
+            status_code=403,
+            detail=f"This video is private and cannot be accessed: {str(e)}"
+        )
+    except RateLimitError as e:
+        logger.error(f"Rate limit error: {str(e)}")
+        raise HTTPException(
+            status_code=429,
+            detail=f"YouTube API rate limit exceeded: {str(e)}"
+        )
+    except VideoProcessingError as e:
+        logger.error(f"Video processing error: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail={
-                "message": "Failed to process video",
-                "error": error_msg
-            }
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error processing video: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected error occurred while processing the video: {str(e)}"
         )
 
 @router.get("/videos/", response_model=List[VideoResponse])
@@ -185,3 +212,13 @@ async def process_video(video_id: int, db: Session = Depends(get_db)):
                 "error": str(e)
             }
         )
+
+@router.get("/videos/debug", response_model=dict)
+async def debug_video_extraction(url: str):
+    """Extract and return raw video info for debugging purposes."""
+    try:
+        processor = VideoProcessor()
+        video_info = processor.extract_video_info(url)
+        return video_info
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
