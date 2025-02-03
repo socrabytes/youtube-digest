@@ -29,6 +29,28 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
     return `${views} views`;
   };
 
+  const formatDate = (dateStr: string): string => {
+    // Convert YYYYMMDD to readable format
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return new Date(`${year}-${month}-${day}`).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatLikes = (likes: number): string => {
+    if (likes >= 1000000) {
+      return `${(likes / 1000000).toFixed(1)}M`;
+    }
+    if (likes >= 1000) {
+      return `${(likes / 1000).toFixed(1)}K`;
+    }
+    return likes.toString();
+  };
+
   // Function to get video ID from YouTube URL
   const getYouTubeVideoId = (url: string): string => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -72,7 +94,60 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
             </>
           )}
           {video.view_count && <span>{formatViews(video.view_count)}</span>}
+          {video.subscriber_count != null && (
+            <span className="mx-2">• {video.subscriber_count.toLocaleString()} subs</span>
+          )}
+          {video.upload_date && (
+            <span className="mx-2">• {formatDate(video.upload_date)}</span>
+          )}
+          {video.like_count != null && (
+            <span className="mx-2">• {formatLikes(video.like_count)} likes</span>
+          )}
         </div>
+        
+        <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
+          {/* Categories */}
+          {video.categories && video.categories.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {video.categories.map((category, index) => (
+                <span key={index} className="bg-gray-100 px-2 py-1 rounded-full">
+                  {category}
+                </span>
+              ))}
+            </div>
+          )}
+          {/* Tags */}
+          {video.tags && video.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {video.tags.slice(0, 5).map((tag, index) => (
+                <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+              {video.tags.length > 5 && (
+                <span className="text-gray-500 px-2 py-1">
+                  +{video.tags.length - 5} more
+                </span>
+              )}
+            </div>
+          )}
+          {video.transcript && (
+            <a
+              href={video.transcript}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full hover:bg-indigo-200 transition-colors"
+            >
+              View Transcript
+            </a>
+          )}
+        </div>
+        
+        {video.description && (
+          <div className="mt-2 text-sm text-gray-700 line-clamp-2">
+            {video.description}
+          </div>
+        )}
         
         {video.summary ? (
           <div className="mt-3 text-sm text-gray-700">
