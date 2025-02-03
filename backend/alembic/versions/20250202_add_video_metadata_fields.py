@@ -17,12 +17,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('video', sa.Column('upload_date', sa.String(8), nullable=True))
-    op.add_column('video', sa.Column('like_count', sa.BigInteger(), nullable=True))
-    op.add_column('video', sa.Column('description', sa.Text(), nullable=True))
+    op.add_column('videos', sa.Column('upload_date', sa.String(8), nullable=True))
+    op.add_column('videos', sa.Column('like_count', sa.BigInteger(), nullable=True))
+    op.add_column('videos', sa.Column('description', sa.Text(), nullable=True))
 
 
 def downgrade():
-    op.drop_column('video', 'description')
-    op.drop_column('video', 'like_count')
-    op.drop_column('video', 'upload_date')
+    op.drop_column('videos', 'description')
+    op.drop_column('videos', 'like_count')
+    op.drop_column('videos', 'upload_date')
