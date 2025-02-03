@@ -54,6 +54,13 @@ class VideoProcessor:
                     except (ValueError, TypeError):
                         duration = None
                 
+                subscriber_count = info.get('channel_subscriber_count')
+                if subscriber_count is not None:
+                    try:
+                        subscriber_count = int(subscriber_count)
+                    except (ValueError, TypeError):
+                        subscriber_count = None
+                
                 # Build the video data dictionary
                 video_data = {
                     'youtube_id': str(info.get('id', '')).strip(),
@@ -62,8 +69,12 @@ class VideoProcessor:
                     'url': str(url).strip(),
                     'duration': duration,
                     'view_count': view_count,
+                    'subscriber_count': subscriber_count,
                     'channel_id': str(info.get('channel_id', '')).strip(),
                     'channel_title': str(info.get('uploader', '')).strip(),
+                    'upload_date': info.get('upload_date'),  # YYYYMMDD format
+                    'like_count': info.get('like_count'),
+                    'description': info.get('description', '').strip(),
                     'tags': tags,
                     'categories': categories,
                     'transcript': None

@@ -29,8 +29,12 @@ class VideoResponse(BaseModel):
     # Video metadata
     duration: Optional[int]
     view_count: Optional[int]
+    subscriber_count: Optional[int]
     channel_id: Optional[str]
     channel_title: Optional[str]
+    upload_date: Optional[str]
+    like_count: Optional[int]
+    description: Optional[str]
     
     # Content analysis
     tags: Optional[List[str]]
@@ -72,6 +76,7 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
             for key, value in video_info.items():
                 if hasattr(existing_video, key):
                     setattr(existing_video, key, value)
+            existing_video.subscriber_count = video_info.get('subscriber_count')
             existing_video.processed = False  # Reset processed flag for re-processing
             existing_video.error_message = None
             db_video = existing_video
@@ -85,8 +90,12 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
                 thumbnail_url=video_info.get('thumbnail_url'),
                 duration=video_info.get('duration'),
                 view_count=video_info.get('view_count'),
+                subscriber_count=video_info.get('subscriber_count'),
                 channel_id=video_info.get('channel_id'),
                 channel_title=video_info.get('channel_title'),
+                upload_date=video_info.get('upload_date'),
+                like_count=video_info.get('like_count'),
+                description=video_info.get('description'),
                 tags=video_info.get('tags', []),
                 categories=video_info.get('categories', []),
                 transcript=video_info.get('transcript'),
@@ -185,3 +194,13 @@ async def process_video(video_id: int, db: Session = Depends(get_db)):
                 "error": str(e)
             }
         )
+
+@router.get("/videos/debug", response_model=dict)
+async def debug_video_extraction(url: str):
+    """Extract and return raw video info for debugging purposes."""
+    try:
+        processor = VideoProcessor()
+        video_info = processor.extract_video_info(url)
+        return video_info
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
