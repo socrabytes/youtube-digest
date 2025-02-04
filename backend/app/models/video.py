@@ -1,9 +1,16 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, BigInteger
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, BigInteger, JSON, Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import json
+import enum
 
 Base = declarative_base()
+
+class ProcessingStatus(enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 class Video(Base):
     __tablename__ = "videos"
@@ -28,10 +35,14 @@ class Video(Base):
     _tags = Column("tags", Text, nullable=True)
     _categories = Column("categories", Text, nullable=True)
     transcript = Column(Text, nullable=True)
+    summary = Column(Text, nullable=True)
     sentiment_score = Column(Integer, nullable=True)
     
     # Processing status
-    summary = Column(Text, nullable=True)
+    processing_status = Column(SQLEnum(ProcessingStatus), nullable=False, default=ProcessingStatus.PENDING)
+    transcript_source = Column(String(10), nullable=True)  # 'manual' or 'auto'
+    openai_usage = Column(JSON, nullable=True)
+    last_processed = Column(DateTime, nullable=True)
     processed = Column(Boolean, default=False, nullable=False)
     error_message = Column(Text, nullable=True)
     
@@ -74,6 +85,18 @@ class Video(Base):
             # Ensure all items are strings
             str_list = [str(item) for item in value if item is not None]
             self._categories = json.dumps(str_list)
+
+    @property
+    def is_processing(self) -> bool:
+        return self.processing_status == ProcessingStatus.PROCESSING
+    
+    @property
+    def is_processed(self) -> bool:
+        return self.processing_status == ProcessingStatus.COMPLETED
+    
+    @property
+    def has_failed(self) -> bool:
+        return self.processing_status == ProcessingStatus.FAILED
 
     def __init__(self, **kwargs):
         # Handle tags and categories

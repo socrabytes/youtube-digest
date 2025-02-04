@@ -31,8 +31,9 @@ class TranscriptService:
                 info = ydl.extract_info(url, download=False)
                 transcript = TranscriptParser.parse(info)
                 if not transcript:
+                    logger.warning(f"No transcript found for video: {url}")
                     raise TranscriptNotFoundError("No transcript available for this video")
-                    
+                
                 metadata = {
                     'source': 'manual' if info.get('subtitles') else 'auto',
                     'language': 'en',
@@ -40,6 +41,8 @@ class TranscriptService:
                 }
                 return transcript, metadata
                 
+        except TranscriptNotFoundError:
+            raise
         except Exception as e:
             logger.error(f"Transcript extraction failed: {str(e)}")
             raise VideoTranscriptError(f"Failed to extract transcript: {str(e)}")
