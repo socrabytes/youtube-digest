@@ -74,7 +74,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
       setIsGenerating(true);
       setError(null);
       
-      const response = await fetch(`/api/v1/videos/${video.id}/process`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${video.id}/process`, {
         method: 'POST',
       });
       
@@ -85,7 +85,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
       
       // Start polling for status
       const pollInterval = setInterval(async () => {
-        const videoResponse = await fetch(`/api/v1/videos/${video.id}`);
+        const videoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${video.id}`);
         if (!videoResponse.ok) {
           throw new Error('Failed to fetch video status');
         }
