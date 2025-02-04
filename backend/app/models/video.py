@@ -1,14 +1,16 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, BigInteger, JSON, Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
+from enum import Enum
 from datetime import datetime
 import json
-import enum
 
 Base = declarative_base()
 
-class ProcessingStatus(str, enum.Enum):
+class ProcessingStatus(str, Enum):
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
+    SUMMARIZING = "SUMMARIZING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
@@ -41,14 +43,14 @@ class Video(Base):
     # Processing status
     processing_status = Column(SQLEnum(ProcessingStatus), nullable=False, default=ProcessingStatus.PENDING)
     transcript_source = Column(String(10), nullable=True)  # 'manual' or 'auto'
-    openai_usage = Column(JSON, nullable=True)
+    openai_usage = Column(JSON, nullable=True)  # Includes token usage and cost
     last_processed = Column(DateTime, nullable=True)
     processed = Column(Boolean, default=False, nullable=False)
     error_message = Column(Text, nullable=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     @property
     def tags(self):
