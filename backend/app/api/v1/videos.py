@@ -66,7 +66,11 @@ class VideoResponse(BaseModel):
         from_attributes = True
 
 @router.post("/videos/", response_model=VideoResponse)
-async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
+async def create_video(
+    video: VideoCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     """Submit a new video for processing"""
     logger.info(f"Processing video URL: {video.url}")
     processor = VideoProcessor()
@@ -89,6 +93,7 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
                     setattr(existing_video, key, value)
             existing_video.processed = False  # Reset processed flag for re-processing
             existing_video.error_message = None
+            existing_video.processing_status = ProcessingStatus.PENDING
             db_video = existing_video
         else:
             logger.info(f"Creating new video entry for {video_info['youtube_id']}")
@@ -117,6 +122,10 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
             
         db.commit()
         db.refresh(db_video)
+        
+        # Start background processing
+        background_tasks.add_task(process_video, db_video.id, db)
+        
         return db_video
         
     except VideoNotFoundError as e:
@@ -179,35 +188,60 @@ async def process_video(video_id: int, db: Session = Depends(get_db)):
             logger.error(f"Video not found with ID: {video_id}")
             raise HTTPException(status_code=404, detail="Video not found")
         
+        # Update status to processing
+        video.processing_status = ProcessingStatus.PROCESSING
+        db.commit()
+        
         processor = VideoProcessor()
         
-        # Prepare video data for summary generation
-        video_data = {
-            'youtube_id': video.youtube_id,
-            'title': video.title,
-            'duration': video.duration,
-            'categories': video.categories,
-            'tags': video.tags,
-        }
-        
-        # Generate summary
-        logger.info(f"Generating summary for video: {video.youtube_id}")
-        summary = processor.generate_summary(video_data)
-        
-        if summary:
-            video.summary = summary
-            video.processed = True
-            video.error_message = None
-        else:
-            video.processed = False
-            video.error_message = "Failed to generate summary"
+        try:
+            # Extract transcript if not already present
+            if not video.transcript:
+                logger.info("Extracting transcript")
+                transcript_service = TranscriptService()
+                transcript, meta = transcript_service.extract_transcript(video.url)
+                video.transcript = transcript
+                video.processing_status = ProcessingStatus.SUMMARIZING
+                db.commit()
             
-        logger.info("Saving changes to database")
-        db.commit()
-        db.refresh(video)
-        
-        return video
-        
+            # Prepare video data for summary generation
+            video_data = {
+                'youtube_id': video.youtube_id,
+                'title': video.title,
+                'duration': video.duration,
+                'categories': video.categories,
+                'tags': video.tags,
+                'transcript': video.transcript
+            }
+            
+            # Generate summary
+            logger.info(f"Generating summary for video: {video.youtube_id}")
+            summary = processor.generate_summary(video_data)
+            
+            if summary:
+                video.summary = summary
+                video.processed = True
+                video.error_message = None
+                video.processing_status = ProcessingStatus.COMPLETED
+            else:
+                video.processed = False
+                video.error_message = "Failed to generate summary"
+                video.processing_status = ProcessingStatus.FAILED
+                
+            logger.info("Saving changes to database")
+            db.commit()
+            db.refresh(video)
+            
+            return video
+            
+        except Exception as e:
+            logger.error(f"Error during processing: {str(e)}", exc_info=True)
+            video.processed = False
+            video.error_message = str(e)
+            video.processing_status = ProcessingStatus.FAILED
+            db.commit()
+            raise
+            
     except Exception as e:
         logger.error(f"Error processing video: {str(e)}", exc_info=True)
         db.rollback()
