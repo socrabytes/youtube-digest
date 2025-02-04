@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import VideoCard from '@/components/video/VideoCard';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -11,6 +11,24 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
   const [error, setError] = useState('');
+
+  // Fetch videos when component mounts
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  const fetchVideos = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch videos');
+      }
+      const data = await response.json();
+      setVideos(data);
+    } catch (err) {
+      console.error('Error fetching videos:', err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,35 +47,58 @@ export default function Home() {
 
       if (!createResponse.ok) {
         const errorData = await createResponse.json();
-        throw new Error(errorData.detail || 'Failed to submit video');
+        throw new Error(errorData.detail || 'Failed to create video');
       }
 
       const newVideo = await createResponse.json();
-      
-      // Update videos list, removing any existing version of this video
-      setVideos(prev => {
-        const filtered = prev.filter(v => v.youtube_id !== newVideo.youtube_id);
-        return [newVideo, ...filtered];
+
+      // Update videos list
+      setVideos(prevVideos => {
+        const existingIndex = prevVideos.findIndex(v => v.id === newVideo.id);
+        if (existingIndex >= 0) {
+          // Replace existing video
+          const updatedVideos = [...prevVideos];
+          updatedVideos[existingIndex] = newVideo;
+          return updatedVideos;
+        } else {
+          // Add new video at the beginning
+          return [newVideo, ...prevVideos];
+        }
       });
+
+      // Clear input after successful submission
+      setUrl('');
       
       // Process the video to generate summary
       const processResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${newVideo.id}/process`, {
         method: 'POST',
       });
 
-      if (processResponse.ok) {
-        const processedVideo = await processResponse.json();
-        setVideos(prev => prev.map(v => 
-          v.id === processedVideo.id ? processedVideo : v
-        ));
+      if (!processResponse.ok) {
+        const errorData = await processResponse.json();
+        throw new Error(errorData.detail || 'Failed to process video');
       }
-
-      setUrl('');
     } catch (err) {
-      console.error('Error submitting video:', err);
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handler for refreshing a single video
+  const handleVideoRefresh = async (videoId: number) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${videoId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch video');
+      }
+      const updatedVideo = await response.json();
+      
+      setVideos(prevVideos => 
+        prevVideos.map(v => v.id === videoId ? updatedVideo : v)
+      );
+    } catch (err) {
+      console.error('Error refreshing video:', err);
     }
   };
 
@@ -98,7 +139,7 @@ export default function Home() {
             <VideoCard
               key={video.id}
               video={video}
-              onClick={(video) => console.log('Video clicked:', video.id)}
+              onRefresh={() => handleVideoRefresh(video.id)}
             />
           ))}
           {videos.length === 0 && (

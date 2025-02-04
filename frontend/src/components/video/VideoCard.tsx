@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Video } from '@/types/video';
 import Image from 'next/image';
 
@@ -12,6 +12,14 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+
+  // Clear error when video changes or gets a summary
+  useEffect(() => {
+    if (video.summary || video.processing_status?.toLowerCase() === 'completed') {
+      setError(null);
+      setIsGenerating(false);
+    }
+  }, [video]);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -69,49 +77,76 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
     return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '/placeholder-thumbnail.jpg';
   };
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateSummary = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!video || isGenerating) return;
+
+    setIsGenerating(true);
+    setError(null);
+
     try {
-      setIsGenerating(true);
-      setError(null);
-      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${video.id}/process`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ summary_style: 'detailed' }),
       });
+
+      const data = await response.json();
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate summary');
+        throw new Error(data.detail || 'Failed to generate summary');
       }
-      
-      // Start polling for status
+
+      // Start polling for status updates
       const pollInterval = setInterval(async () => {
-        const videoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${video.id}`);
-        if (!videoResponse.ok) {
-          throw new Error('Failed to fetch video status');
-        }
-        const updatedVideo = await videoResponse.json();
+        const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${video.id}`);
+        const updatedVideo = await statusResponse.json();
         
-        if (updatedVideo.processing_status === 'completed') {
-          setIsGenerating(false);
+        if (updatedVideo.processing_status === 'COMPLETED') {
           clearInterval(pollInterval);
+          setIsGenerating(false);
           if (onRefresh) onRefresh();
-        } else if (updatedVideo.processing_status === 'failed') {
-          setIsGenerating(false);
-          setError('Summary generation failed');
+        } else if (updatedVideo.processing_status === 'FAILED') {
           clearInterval(pollInterval);
+          setIsGenerating(false);
+          setError(updatedVideo.error_message || 'Failed to generate summary');
+          if (onRefresh) onRefresh();
         }
-      }, 5000);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      }, 2000);
+
+      // Cleanup interval after 2 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setIsGenerating(false);
+        setError('Summary generation timed out');
+        if (onRefresh) onRefresh();
+      }, 120000);
+
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate summary');
       setIsGenerating(false);
+      if (onRefresh) onRefresh();
     }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger card click if clicking on a button or link
+    if (
+      e.target instanceof Element && 
+      (e.target.closest('button') || e.target.closest('a'))
+    ) {
+      return;
+    }
+    onClick?.(video);
   };
 
   return (
     <div 
       className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
-      onClick={() => onClick?.(video)}
+      onClick={handleCardClick}
     >
       <div className="relative aspect-video">
         <Image
@@ -223,22 +258,26 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
           </div>
         ) : (
           <div className="mt-4">
-            {video.processing_status === 'processing' || video.processing_status === 'summarizing' ? (
+            {video.processing_status?.toLowerCase() === 'processing' || 
+             video.processing_status?.toLowerCase() === 'summarizing' ? (
               <div className="text-sm text-gray-500 flex items-center">
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                {video.processing_status === 'summarizing' ? 'Generating summary...' : 'Processing video...'}
+                {video.processing_status?.toLowerCase() === 'summarizing' ? 'Generating summary...' : 'Processing video...'}
               </div>
-            ) : video.processing_status === 'failed' ? (
+            ) : video.processing_status?.toLowerCase() === 'failed' ? (
               <div className="text-sm text-red-600">
                 Failed to generate summary. {video.error_message}
               </div>
             ) : (
               <button
                 className="inline-flex items-center bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition-colors text-sm font-medium"
-                onClick={handleGenerateSummary}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleGenerateSummary(e);
+                }}
                 disabled={isGenerating}
               >
                 {isGenerating ? (
