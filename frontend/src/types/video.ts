@@ -1,10 +1,12 @@
+export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
 export interface Video {
-  id: string;
+  id: number;
   youtube_id: string;
   url: string;
-  title?: string;
+  title: string;
   thumbnail_url?: string;
-  duration?: number;
+  duration: number;
   view_count?: number;
   subscriber_count?: number;
   channel_id?: string;
@@ -15,7 +17,16 @@ export interface Video {
   tags?: string[];
   categories?: string[];
   transcript?: string | null;
+  transcript_source?: 'manual' | 'auto';
   summary?: string;
+  processing_status: ProcessingStatus;
+  openai_usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  created_at: string;
+  updated_at: string;
   processed?: boolean;
   error_message?: string;
 }

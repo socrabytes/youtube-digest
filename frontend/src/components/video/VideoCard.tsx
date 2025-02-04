@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Video } from '@/types/video';
 import Image from 'next/image';
 
 interface VideoCardProps {
   video: Video;
   onClick?: (video: Video) => void;
+  onRefresh?: () => void;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
+const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -62,6 +67,42 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
   const getThumbnailUrl = (url: string): string => {
     const videoId = getYouTubeVideoId(url);
     return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '/placeholder-thumbnail.jpg';
+  };
+
+  const handleGenerateSummary = async () => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      
+      const response = await fetch(`/api/v1/videos/${video.id}/generate-summary`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate summary');
+      }
+      
+      // Start polling for status
+      const pollInterval = setInterval(async () => {
+        const videoResponse = await fetch(`/api/v1/videos/${video.id}`);
+        const updatedVideo = await videoResponse.json();
+        
+        if (updatedVideo.processing_status === 'completed') {
+          setIsGenerating(false);
+          clearInterval(pollInterval);
+          if (onRefresh) onRefresh();
+        } else if (updatedVideo.processing_status === 'failed') {
+          setIsGenerating(false);
+          setError('Summary generation failed');
+          clearInterval(pollInterval);
+        }
+      }, 5000);
+      
+    } catch (err) {
+      setError(err.message);
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -168,7 +209,37 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick }) => {
               View Transcript
             </a>
           )}
+          <button
+            className="inline-flex items-center bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition-colors text-sm font-medium"
+            onClick={handleGenerateSummary}
+            disabled={isGenerating || video.processing_status === 'processing'}
+          >
+            {isGenerating ? 'Generating...' : 'Generate Summary'}
+          </button>
         </div>
+        
+        {error && (
+          <div className="mt-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+        
+        {video.summary && (
+          <>
+            <button
+              className="inline-flex items-center text-sm font-medium mt-2"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? 'Hide Summary' : 'Show Summary'}
+            </button>
+            
+            {expanded && (
+              <div className="mt-2 text-sm text-gray-700">
+                <p>{video.summary}</p>
+              </div>
+            )}
+          </>
+        )}
         
         {video.description && (
           <div className="mt-2 text-sm text-gray-700 line-clamp-2">
