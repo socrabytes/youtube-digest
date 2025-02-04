@@ -1,26 +1,26 @@
-# YouTube Video Digest Platform
+# YouTube Video Digest
 
-Transform YouTube videos into comprehensive, interactive digests powered by AI.
+Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's GPT-4.
 
-## ✨ Features
+## 🎥 What it does
 
-- 🎥 **Video Analysis**: Submit any YouTube video URL
-- 🤖 **AI-Powered Summaries**: Get intelligent summaries of video content
-- 🖼️ **Visual Preview**: See video thumbnails and metadata
-- 📊 **Comprehensive Details**: View duration, channel info, and more
+- **Video Analysis**: Enter any YouTube URL, get an AI-generated summary
+- **Smart Summaries**: Uses GPT-4 to create concise, informative video summaries
+- **Automatic Processing**: Handles transcript extraction and processing
+- **Cost Tracking**: Monitors OpenAI token usage and costs
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Docker and Docker Compose
 - OpenAI API key
 
-### Quick Start
+### Setup
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/socrabytes/youtube-digest.git
 cd youtube-digest
 ```
 
@@ -42,25 +42,24 @@ docker-compose up
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## 💡 Usage
+### Using the App
 
-1. Visit the homepage
-2. Paste a YouTube video URL
-3. Click "Create Digest"
-4. View your video digest with AI-generated insights
+1. Enter a YouTube URL in the input field
+2. Click "Create Digest"
+3. Wait for the AI to process the video
+4. View your generated summary
 
-## 🛠️ Tech Stack
+## 🏗️ Current State
 
-- **Frontend**: Next.js 14, TypeScript, TailwindCSS
-- **Backend**: FastAPI, PostgreSQL, OpenAI
-- **Infrastructure**: Docker
+This project is under active development. Currently working:
+- ✅ YouTube video URL processing
+- ✅ Transcript extraction
+- ✅ OpenAI GPT-4 integration
+- ✅ Basic summary generation
+- ✅ Docker development environment
 
-## 📝 Development
+## 📚 Documentation
 
-For development status, progress, and contribution guidelines, see:
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Current development status
-- [CHANGELOG.md](CHANGELOG.md) - Version history
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Detailed documentation available in the `/docs` directory:
+- [Features](./docs/features/ai-video-summarization.md)
+- [Development Patterns](./docs/patterns/)
