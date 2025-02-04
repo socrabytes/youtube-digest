@@ -1,4 +1,4 @@
-export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ProcessingStatus = 'pending' | 'processing' | 'summarizing' | 'completed' | 'failed';
 
 export interface Video {
   id: number;
