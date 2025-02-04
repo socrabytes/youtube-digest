@@ -55,6 +55,8 @@ class VideoResponse(BaseModel):
     summary: Optional[str]
     processed: bool
     error_message: Optional[str]
+    processing_status: Optional[str]
+    last_processed: Optional[datetime]
     
     # Timestamps
     created_at: datetime
@@ -232,7 +234,11 @@ async def generate_summary(
         if not video.transcript:
             transcript, meta = TranscriptService.extract_transcript(video.url)
             video.transcript = transcript
-            db.commit()
+            video.transcript_source = meta['source']
+        
+        # Update status to processing
+        video.processing_status = 'processing'
+        db.commit()
         
         # Queue summary generation
         background_tasks.add_task(
@@ -245,9 +251,13 @@ async def generate_summary(
         
     except VideoTranscriptError as e:
         logger.error(f"Transcript extraction failed: {str(e)}")
+        video.processing_status = 'failed'
+        db.commit()
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"Summary generation failed: {str(e)}")
+        video.processing_status = 'failed'
+        db.commit()
         raise HTTPException(status_code=500, detail="Failed to process video summary")
 
 def process_summary_generation(video_id: int, transcript: str):
@@ -256,16 +266,24 @@ def process_summary_generation(video_id: int, transcript: str):
     
     try:
         video = db.query(VideoModel).get(video_id)
+        if not video:
+            logger.error(f"Video {video_id} not found")
+            return
+            
         result = OpenAISummarizer().generate(transcript)
         
         video.summary = result["summary"]
         video.openai_usage = json.dumps(result["usage"])
+        video.processing_status = 'completed'
+        video.last_processed = datetime.utcnow()
         db.commit()
+        
         logger.info(f"Successfully generated summary for video {video_id}")
         
     except Exception as e:
         logger.error(f"Summary generation failed: {str(e)}")
-        db.rollback()
+        video.processing_status = 'failed'
+        db.commit()
     finally:
         db.close()
 
