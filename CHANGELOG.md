@@ -16,6 +16,23 @@
   - In Progress: Active development
   - Bugs: Issue tracking
   - Done: Completed work
+- OpenAI video summarization integration
+  - Automatic transcript extraction and processing
+  - AI-powered summary generation with GPT-4
+  - Token usage tracking and cost monitoring
+  - Rate limiting and retry mechanisms
+- Comprehensive test suite for OpenAI integration
+  - Unit tests for summarizer and transcript handling
+  - Integration tests for end-to-end flows
+  - Mock tests for API interactions
+- Enhanced frontend components
+  - Updated VideoCard with summary display
+  - Loading states and error handling
+  - Automatic refresh on completion
+- Documentation improvements
+  - Development patterns and best practices guide
+  - Feature-specific documentation
+  - API endpoint documentation
 
 ### Changed
 - Split issue management workflow into focused components:
@@ -25,6 +42,12 @@
 - Optimized GitHub Actions workflows
 - Improved issue template structure
 - Enhanced project board organization
+- Simplified summary generation process
+  - Removed summary style selection
+  - Optimized prompt for consistent results
+- Updated database schema
+  - Added token usage tracking
+  - Improved status tracking for background tasks
 
 ## [0.2.0] - 2024-12-13
 ### Added
