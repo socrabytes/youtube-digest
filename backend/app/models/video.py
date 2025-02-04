@@ -6,7 +6,7 @@ import enum
 
 Base = declarative_base()
 
-class ProcessingStatus(enum.Enum):
+class ProcessingStatus(str, enum.Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
