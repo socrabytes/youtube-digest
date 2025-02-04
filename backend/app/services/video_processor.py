@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any, Tuple
 import json
 import logging
 from app.utils.validators import validate_youtube_url
+from app.services.transcript_service import TranscriptService, VideoTranscriptError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ class RateLimitError(VideoProcessingError):
 class VideoProcessor:
     def __init__(self):
         self.client: Optional[OpenAI] = None
+        self.transcript_service = TranscriptService()
         if settings.OPENAI_API_KEY:
             self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -117,10 +119,13 @@ class VideoProcessor:
                     'error': None
                 }
                 
-                # Try to get transcript URL
-                transcript_url = self._extract_transcript(info)
-                if transcript_url:
-                    video_data['transcript'] = str(transcript_url).strip()
+                # Try to get transcript
+                try:
+                    transcript_text, transcript_info = self.transcript_service.extract_transcript(url)
+                    video_data['transcript'] = transcript_text
+                    video_data['transcript_source'] = transcript_info.get('source')
+                except VideoTranscriptError as e:
+                    logger.warning(f"Could not extract transcript: {str(e)}")
                 
                 # Validate required fields
                 required_fields = ['youtube_id', 'title', 'duration']
@@ -145,34 +150,6 @@ class VideoProcessor:
                 else:
                     logger.error(f"Error extracting video info: {str(e)}", exc_info=True)
                     raise VideoProcessingError(f"Failed to extract video info: {str(e)}")
-            except Exception as e:
-                logger.error(f"Unexpected error extracting video info: {str(e)}", exc_info=True)
-                raise VideoProcessingError(f"An unexpected error occurred: {str(e)}")
-
-    def _extract_transcript(self, info: Dict[str, Any]) -> Optional[str]:
-        """Extract transcript from video subtitles if available."""
-        try:
-            logger.info("Attempting to extract transcript")
-            if info.get('subtitles'):
-                logger.info(f"Available subtitles: {info['subtitles'].keys()}")
-                en_subs = info['subtitles'].get('en')
-                if en_subs and len(en_subs) > 0:
-                    logger.info("Found English subtitles")
-                    return en_subs[0].get('url', '')
-            
-            if info.get('automatic_captions'):
-                logger.info(f"Available auto-captions: {info['automatic_captions'].keys()}")
-                auto_subs = info['automatic_captions'].get('en')
-                if auto_subs and len(auto_subs) > 0:
-                    logger.info("Found English auto-captions")
-                    return auto_subs[0].get('url', '')
-            
-            logger.info("No subtitles or auto-captions found")
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error extracting transcript: {str(e)}", exc_info=True)
-            return None
 
     def generate_summary(self, video_data: Dict[str, Any]) -> Optional[str]:
         """Generate a summary of the video using OpenAI."""
@@ -202,10 +179,8 @@ Focus on what viewers will learn or experience."""
                 temperature=0.7
             )
             
-            summary = response.choices[0].message.content.strip()
-            logger.info(f"Generated summary for video {video_data['youtube_id']}")
-            return summary
-
+            return response.choices[0].message.content.strip()
+            
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}", exc_info=True)
             return None
