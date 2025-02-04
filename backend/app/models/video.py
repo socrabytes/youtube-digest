@@ -7,10 +7,10 @@ import enum
 Base = declarative_base()
 
 class ProcessingStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 class Video(Base):
     __tablename__ = "videos"
