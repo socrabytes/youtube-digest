@@ -7,7 +7,7 @@ import logging
 import json
 
 from app.db.database import get_db, SessionLocal
-from app.models.video import Video as VideoModel
+from app.models.video import Video as VideoModel, ProcessingStatus
 from app.services.video_processor import (
     VideoProcessor,
     VideoProcessingError,
@@ -111,7 +111,7 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
                 transcript=video_info.get('transcript'),
                 processed=False,
                 error_message=None,
-                processing_status=VideoModel.ProcessingStatus.PENDING
+                processing_status=ProcessingStatus.PENDING
             )
             db.add(db_video)
             
