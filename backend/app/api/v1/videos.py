@@ -1,11 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
+import json
 
-from app.db.database import get_db
+from app.db.database import get_db, SessionLocal
 from app.models.video import Video as VideoModel
 from app.services.video_processor import (
     VideoProcessor,
@@ -14,6 +15,8 @@ from app.services.video_processor import (
     PrivateVideoError,
     RateLimitError
 )
+from app.services.transcript_service import TranscriptService, VideoTranscriptError
+from app.services.openai_summarizer import OpenAISummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +215,59 @@ async def process_video(video_id: int, db: Session = Depends(get_db)):
                 "error": str(e)
             }
         )
+
+@router.post("/videos/{video_id}/generate-summary")
+async def generate_summary(
+    video_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Generate AI summary for a video."""
+    video = db.query(VideoModel).get(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    try:
+        # Extract transcript if not already present
+        if not video.transcript:
+            transcript, meta = TranscriptService.extract_transcript(video.url)
+            video.transcript = transcript
+            db.commit()
+        
+        # Queue summary generation
+        background_tasks.add_task(
+            process_summary_generation,
+            video_id=video_id,
+            transcript=video.transcript
+        )
+        
+        return {"status": "processing_started", "video_id": video_id}
+        
+    except VideoTranscriptError as e:
+        logger.error(f"Transcript extraction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"Summary generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process video summary")
+
+def process_summary_generation(video_id: int, transcript: str):
+    """Background task for summary generation."""
+    db = SessionLocal()
+    
+    try:
+        video = db.query(VideoModel).get(video_id)
+        result = OpenAISummarizer().generate(transcript)
+        
+        video.summary = result["summary"]
+        video.openai_usage = json.dumps(result["usage"])
+        db.commit()
+        logger.info(f"Successfully generated summary for video {video_id}")
+        
+    except Exception as e:
+        logger.error(f"Summary generation failed: {str(e)}")
+        db.rollback()
+    finally:
+        db.close()
 
 @router.get("/videos/debug", response_model=dict)
 async def debug_video_extraction(url: str):
