@@ -16,7 +16,7 @@ from app.services.video_processor import (
     RateLimitError
 )
 from app.services.transcript_service import TranscriptService, VideoTranscriptError
-from app.services.openai_summarizer import OpenAISummarizer
+from app.services.summarizers.openai_summarizer import OpenAISummarizer, SummaryGenerationError
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,8 @@ async def create_video(video: VideoCreate, db: Session = Depends(get_db)):
                 categories=video_info.get('categories', []),
                 transcript=video_info.get('transcript'),
                 processed=False,
-                error_message=None
+                error_message=None,
+                processing_status=VideoModel.ProcessingStatus.PENDING
             )
             db.add(db_video)
             
@@ -263,6 +264,7 @@ async def generate_summary(
 def process_summary_generation(video_id: int, transcript: str):
     """Background task for summary generation."""
     db = SessionLocal()
+    logger.info(f"Starting background summary generation for video {video_id}")
     
     try:
         video = db.query(VideoModel).get(video_id)
@@ -270,8 +272,13 @@ def process_summary_generation(video_id: int, transcript: str):
             logger.error(f"Video {video_id} not found")
             return
             
-        result = OpenAISummarizer().generate(transcript)
+        logger.info("Creating OpenAI summarizer")
+        summarizer = OpenAISummarizer()
         
+        logger.info("Generating summary")
+        result = summarizer.generate(transcript)
+        
+        logger.info("Updating video with summary")
         video.summary = result["summary"]
         video.openai_usage = json.dumps(result["usage"])
         video.processing_status = 'completed'
@@ -281,8 +288,9 @@ def process_summary_generation(video_id: int, transcript: str):
         logger.info(f"Successfully generated summary for video {video_id}")
         
     except Exception as e:
-        logger.error(f"Summary generation failed: {str(e)}")
+        logger.error(f"Summary generation failed: {str(e)}", exc_info=True)
         video.processing_status = 'failed'
+        video.error_message = str(e)
         db.commit()
     finally:
         db.close()
