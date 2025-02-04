@@ -93,6 +93,138 @@ This document outlines the key development patterns and best practices establish
 - Example requests/responses
 - Error scenarios documented
 
+## Development Patterns
+
+### Video Metadata Management Pattern
+[Established in Issue #31]
+
+#### When to Use
+- Adding new video metadata fields
+- Modifying existing metadata structure
+
+#### Pattern Steps
+1. Data Extraction (yt-dlp)
+   ```python
+   ydl_opts = {
+       'extract_flat': True,
+       'skip_download': True
+   }
+   ```
+2. Database Changes (Alembic)
+   ```sql
+   ALTER TABLE video
+   ADD COLUMN new_field data_type;
+   ```
+3. Model Updates (SQLAlchemy)
+4. API Modifications
+5. Frontend Integration
+
+#### Example Implementation
+- Adding subscriber_count field
+- See issue #31 for detailed implementation
+
+### OpenAI Integration Pattern
+[Established in Issue #32]
+
+#### When to Use
+- Integrating OpenAI API services
+- Implementing rate-limited API calls
+- Tracking usage and costs
+
+#### Pattern Components
+1. Rate Limiting
+   ```python
+   class RateLimiter:
+       def __init__(self, calls_per_minute: int):
+           self.calls_per_minute = calls_per_minute
+           self.window_size = 60
+           self.min_interval = self.window_size / self.calls_per_minute
+   ```
+
+2. Error Handling
+   ```python
+   @retry(
+       wait=wait_exponential(multiplier=1, min=4, max=10),
+       stop=stop_after_attempt(3),
+       retry=retry_if_exception_type(APIError)
+   )
+   def api_call():
+       pass
+   ```
+
+3. Cost Tracking
+   ```python
+   TOKEN_COST_PER_1K = {
+       "prompt": 0.01,
+       "completion": 0.03
+   }
+   ```
+
+#### Example Implementation
+- Video summarization service
+- See issue #32 for detailed implementation
+
+### Transcript Processing Pattern
+[Established in Issue #32]
+
+#### When to Use
+- Extracting video transcripts
+- Processing subtitle content
+
+#### Pattern Steps
+1. Extract Content
+   ```python
+   ydl_opts = {
+       'writesubtitles': True,
+       'subtitlesformat': 'json3',
+       'skip_download': True
+   }
+   ```
+
+2. Process Format
+   ```python
+   def process_transcript(subtitles: dict) -> str:
+       # Clean and combine text
+       pass
+   ```
+
+#### Example Implementation
+- Video transcript extraction
+- See issue #32 for implementation details
+
+### Background Task Pattern
+[Used in Issues #31, #32]
+
+#### When to Use
+- Long-running operations
+- API-intensive tasks
+- Resource-heavy processing
+
+#### Pattern Components
+1. Status Tracking
+   ```python
+   class ProcessingStatus(str, Enum):
+       PENDING = "pending"
+       PROCESSING = "processing"
+       COMPLETED = "completed"
+       FAILED = "failed"
+   ```
+
+2. Task Execution
+   ```python
+   def process_in_background(video_id: int):
+       try:
+           # Update status
+           # Process
+           # Update result
+       except Exception:
+           # Handle failure
+   ```
+
+#### Example Implementation
+- Video processing pipeline
+- Summary generation process
+
 ## Feature Implementation Workflow
 
 1. Requirements Gathering
