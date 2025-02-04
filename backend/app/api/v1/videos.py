@@ -67,31 +67,39 @@ class VideoResponse(BaseModel):
 
 def process_video_background(video_id: int):
     """Background task for processing a video."""
-    logger.info(f"Starting background processing for video ID: {video_id}")
+    logger.info(f"[Background Task] Starting processing for video ID: {video_id}")
     db = SessionLocal()
+    failed_stages = []
+    summary_attempts = 0
+    last_successful_stage = None
     try:
+        logger.info(f"[Background Task] Retrieved database session for video ID: {video_id}")
         video = db.query(VideoModel).filter(VideoModel.id == video_id).first()
         if video is None:
-            logger.error(f"Video not found with ID: {video_id}")
+            logger.error(f"[Background Task] Video not found with ID: {video_id}")
             return
         
-        # Update status to processing
+        logger.info(f"[Background Task] Updating status to PROCESSING for video ID: {video_id}")
         video.processing_status = ProcessingStatus.PROCESSING
         db.commit()
+        logger.info(f"[Background Task] Status updated to PROCESSING for video ID: {video_id}")
         
         processor = VideoProcessor()
         
         try:
-            # Extract transcript if not already present
             if not video.transcript:
-                logger.info("Extracting transcript")
+                logger.info(f"[Background Task] Starting transcript extraction for video ID: {video_id}")
                 transcript_service = TranscriptService()
                 transcript, meta = transcript_service.extract_transcript(video.url)
+                logger.info(f"[Background Task] Extracted {len(transcript)} character transcript for video ID: {video_id}")
+                
+                logger.info(f"[Background Task] Updating transcript and status to SUMMARIZING for video ID: {video_id}")
                 video.transcript = transcript
                 video.processing_status = ProcessingStatus.SUMMARIZING
                 db.commit()
+                logger.info(f"[Background Task] Transcript updated and status set to SUMMARIZING for video ID: {video_id}")
+                last_successful_stage = "transcript_extraction"
             
-            # Prepare video data for summary generation
             video_data = {
                 'youtube_id': video.youtube_id,
                 'title': video.title,
@@ -101,38 +109,54 @@ def process_video_background(video_id: int):
                 'transcript': video.transcript
             }
             
-            # Generate summary
-            logger.info(f"Generating summary for video: {video.youtube_id}")
+            logger.info(f"[Background Task] Starting summary generation for video ID: {video_id}")
             summary = processor.generate_summary(video_data)
+            summary_attempts += 1
             
             if summary:
+                logger.info(f"[Background Task] Successfully generated {len(summary)} character summary for video ID: {video_id}")
                 video.summary = summary
                 video.processed = True
                 video.error_message = None
                 video.processing_status = ProcessingStatus.COMPLETED
+                last_successful_stage = "summary_generation"
             else:
+                logger.warning(f"[Background Task] Empty summary returned for video ID: {video_id}")
                 video.processed = False
                 video.error_message = "Failed to generate summary"
                 video.processing_status = ProcessingStatus.FAILED
-                
-            logger.info("Saving changes to database")
+                failed_stages.append("summary_generation")
+            
+            logger.info(f"[Background Task] Finalizing updates for video ID: {video_id}")
             db.commit()
+            logger.info(f"[Background Task] Successfully completed processing for video ID: {video_id}")
             
         except Exception as e:
-            logger.error(f"Error during processing: {str(e)}", exc_info=True)
+            logger.error(f"[Background Task] Error during processing: {str(e)}", exc_info=True)
             video.processed = False
             video.error_message = str(e)
             video.processing_status = ProcessingStatus.FAILED
             db.commit()
+            logger.error(f"[Background Task] Marked video ID {video_id} as FAILED")
+            failed_stages.append("processing")
             
     except Exception as e:
-        logger.error(f"Error in background task: {str(e)}", exc_info=True)
+        logger.error("[Background Task] Critical pipeline failure", exc_info=True)
+        logger.error(f"Failed processing stages: {', '.join(failed_stages) if failed_stages else 'Unknown'}")
+        logger.error(f"Current video state: {video.__dict__ if video else 'No video object'}")
+        logger.error(f"Transcript exists: {bool(video.transcript) if video else False}")
+        logger.error(f"Summary generation attempts: {summary_attempts}")
+        logger.error(f"Last successful stage: {last_successful_stage or 'None'}")
         try:
             db.rollback()
-        except:
-            pass
+        except Exception as rollback_error:
+            logger.error(f"[Background Task] Rollback failed: {str(rollback_error)}")
     finally:
-        db.close()
+        try:
+            db.close()
+            logger.info(f"[Background Task] Closed database connection for video ID: {video_id}")
+        except Exception as close_error:
+            logger.error(f"[Background Task] Failed to close connection: {str(close_error)}")
 
 @router.post("/videos/", response_model=VideoResponse)
 async def create_video(
