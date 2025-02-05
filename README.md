@@ -2,12 +2,35 @@
 
 Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's GPT-4.
 
+## 🚧 Project Status
+
+This is an open-source project under active development. Track our progress and upcoming features on our [GitHub Projects board](https://github.com/users/socrabytes/projects/6/views/7).
+
 ## 🎥 What it does
 
 - **Video Analysis**: Enter any YouTube URL, get an AI-generated summary
 - **Smart Summaries**: Uses GPT-4 to create concise, informative video summaries
 - **Automatic Processing**: Handles transcript extraction and processing
 - **Cost Tracking**: Monitors OpenAI token usage and costs
+
+## 🛠️ Tech Stack
+
+### Backend
+- **Framework**: FastAPI (Python 3.11+)
+- **Database**: PostgreSQL with SQLAlchemy
+- **AI**: OpenAI GPT-4 API
+- **Video Processing**: yt-dlp for YouTube integration
+
+### Frontend
+- **Framework**: Next.js 14 with TypeScript
+- **Styling**: Tailwind CSS
+- **Components**: Shadcn UI
+- **State Management**: React Query
+
+### Infrastructure
+- **Containerization**: Docker & Docker Compose
+- **Testing**: pytest (backend), Jest (frontend)
+- **CI/CD**: GitHub Actions
 
 ## 🚀 Quick Start
 
@@ -49,17 +72,17 @@ docker-compose up
 3. Wait for the AI to process the video
 4. View your generated summary
 
-## 🏗️ Current State
-
-This project is under active development. Currently working:
-- ✅ YouTube video URL processing
-- ✅ Transcript extraction
-- ✅ OpenAI GPT-4 integration
-- ✅ Basic summary generation
-- ✅ Docker development environment
-
 ## 📚 Documentation
 
-Detailed documentation available in the `/docs` directory:
-- [Features](./docs/features/ai-video-summarization.md)
-- [Development Patterns](./docs/patterns/)
+Our documentation is organized into several sections in the `/docs` directory:
+
+### Core Documentation
+- [Features](./docs/features/ai-video-summarization.md) - Detailed feature explanations and usage guides
+- [Development Patterns](./docs/patterns/README.md) - Code organization and best practices
+  - [OpenAI Integration](./docs/patterns/openai-integration.md)
+  - [Background Tasks](./docs/patterns/background-tasks.md)
+  - [Transcript Processing](./docs/patterns/transcript-processing.md)
+
+### Development
+- [Project Board](./docs/workflow/github-projects.md) - Track development progress
+- [Tasks](./docs/tasks/) - Implementation details for specific features

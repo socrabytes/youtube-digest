@@ -47,6 +47,7 @@ ENV/
 .vscode/
 *.swp
 *.swo
+.windsurfrules
 
 # Database
 *.sqlite3
