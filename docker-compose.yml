@@ -14,6 +14,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=youtube_digest
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
     depends_on:
       - db
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -28,6 +29,8 @@ services:
       - ./frontend:/app
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
     command: npm run dev
 
   db:
