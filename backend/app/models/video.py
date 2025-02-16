@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, BigInteger, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
+from enum import Enum
 
 from .base import Base, TimestampMixin
 
@@ -16,16 +17,16 @@ class Video(Base, TimestampMixin):
 
     # Primary key and identifiers
     id = Column(Integer, primary_key=True, index=True)
-    youtube_id = Column(String(16), unique=True, nullable=False, index=True, comment="YouTube video ID")
+    youtube_id = Column(String(16), unique=True, nullable=True, index=True, comment="YouTube video ID")
     
     # Basic metadata
-    title = Column(String(255), nullable=False, comment="Video title")
+    title = Column(String(255), nullable=True, comment="Video title")
     description = Column(Text, nullable=True, comment="Video description")
-    duration = Column(Integer, nullable=False, comment="Duration in seconds")
-    upload_date = Column(String(8), nullable=False, comment="Upload date in YYYYMMDD format")
+    duration = Column(Integer, nullable=True, comment="Duration in seconds")
+    upload_date = Column(String(8), nullable=True, comment="Upload date in YYYYMMDD format")
     
     # URLs
-    webpage_url = Column(String(100), nullable=False, comment="YouTube video URL")
+    webpage_url = Column(String(100), nullable=True, comment="YouTube video URL")
     thumbnail = Column(String(255), nullable=True, comment="Thumbnail URL")
     
     # Statistics
@@ -33,7 +34,7 @@ class Video(Base, TimestampMixin):
     like_count = Column(Integer, nullable=True, comment="Number of likes")
     
     # Channel information (foreign key will be added once Channel model exists)
-    channel_id = Column(String(32), ForeignKey('channels.channel_id'), nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=True, index=True)
     channel = relationship("Channel", back_populates="videos")
     
     # Rich content

@@ -26,12 +26,12 @@ class Channel(Base, TimestampMixin):
     uploader_id = Column(String(100), nullable=True, comment="Uploader handle/ID")
     uploader_url = Column(String(255), nullable=True, comment="Uploader URL")
     
+    # Additional data
+    channel_metadata = Column(JSONB, nullable=True, comment="Additional channel metadata")
+    last_updated = Column(DateTime(timezone=True), nullable=True, comment="Last metadata update")
+    
     # Relationships
     videos = relationship("Video", back_populates="channel", cascade="all, delete-orphan")
     
-    # Metadata
-    metadata = Column(JSONB, nullable=True, comment="Additional channel metadata")
-    last_updated = Column(DateTime(timezone=True), nullable=True, comment="Last metadata update")
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
