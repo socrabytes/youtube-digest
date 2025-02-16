@@ -1,11 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, BigInteger, JSON, Enum as SQLEnum
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql import func
-from enum import Enum
-from datetime import datetime
-import json
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, BigInteger, ForeignKey, Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+from .base import Base, TimestampMixin
 
 class ProcessingStatus(str, Enum):
     PENDING = "PENDING"
@@ -14,79 +11,56 @@ class ProcessingStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
-class Video(Base):
+class Video(Base, TimestampMixin):
     __tablename__ = "videos"
 
+    # Primary key and identifiers
     id = Column(Integer, primary_key=True, index=True)
-    youtube_id = Column(String(20), unique=True, nullable=True, index=True)
-    title = Column(String(255), nullable=True)
-    url = Column(String(255), nullable=False)
-    thumbnail_url = Column(String(255), nullable=True)
+    youtube_id = Column(String(16), unique=True, nullable=False, index=True, comment="YouTube video ID")
     
-    # Video metadata
-    duration = Column(Integer, nullable=True)
-    view_count = Column(BigInteger, nullable=True)
-    subscriber_count = Column(Integer, nullable=True)
-    channel_id = Column(String(50), nullable=True)
-    channel_title = Column(String(255), nullable=True)
-    upload_date = Column(String(8), nullable=True)  # YYYYMMDD format
-    like_count = Column(BigInteger, nullable=True)
-    description = Column(Text, nullable=True)
+    # Basic metadata
+    title = Column(String(255), nullable=False, comment="Video title")
+    description = Column(Text, nullable=True, comment="Video description")
+    duration = Column(Integer, nullable=False, comment="Duration in seconds")
+    upload_date = Column(String(8), nullable=False, comment="Upload date in YYYYMMDD format")
+    
+    # URLs
+    webpage_url = Column(String(100), nullable=False, comment="YouTube video URL")
+    thumbnail = Column(String(255), nullable=True, comment="Thumbnail URL")
+    
+    # Statistics
+    view_count = Column(BigInteger, nullable=True, comment="Number of views")
+    like_count = Column(Integer, nullable=True, comment="Number of likes")
+    
+    # Channel information (foreign key will be added once Channel model exists)
+    channel_id = Column(String(32), ForeignKey('channels.channel_id'), nullable=False, index=True)
+    channel = relationship("Channel", back_populates="videos")
+    
+    # Rich content
+    tags = Column(JSONB, nullable=True, comment="Array of video tags")
+    categories = Column(JSONB, nullable=True, comment="Array of video categories")
+    chapters = Column(JSONB, nullable=True, comment="Array of video chapters")
     
     # Content analysis
-    _tags = Column("tags", Text, nullable=True)
-    _categories = Column("categories", Text, nullable=True)
-    transcript = Column(Text, nullable=True)
-    summary = Column(Text, nullable=True)
-    sentiment_score = Column(Integer, nullable=True)
+    transcript = Column(Text, nullable=True, comment="Video transcript")
+    summary = Column(Text, nullable=True, comment="AI-generated summary")
+    sentiment_score = Column(Integer, nullable=True, comment="Sentiment analysis score")
     
-    # Processing status
+    # Processing metadata
     processing_status = Column(SQLEnum(ProcessingStatus), nullable=False, default=ProcessingStatus.PENDING)
-    transcript_source = Column(String(10), nullable=True)  # 'manual' or 'auto'
-    openai_usage = Column(JSON, nullable=True)  # Includes token usage and cost
-    last_processed = Column(DateTime, nullable=True)
+    transcript_source = Column(String(10), nullable=True, comment="Source of transcript: manual or auto")
+    openai_usage = Column(JSONB, nullable=True, comment="OpenAI API usage data")
+    last_processed = Column(DateTime(timezone=True), nullable=True)
     processed = Column(Boolean, default=False, nullable=False)
     error_message = Column(Text, nullable=True)
     
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-    @property
-    def tags(self):
-        if self._tags is None:
-            return []
-        try:
-            return json.loads(self._tags)
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-    @tags.setter
-    def tags(self, value):
-        if value is None:
-            self._tags = json.dumps([])
-        else:
-            # Ensure all items are strings
-            str_list = [str(item) for item in value if item is not None]
-            self._tags = json.dumps(str_list)
-
-    @property
-    def categories(self):
-        if self._categories is None:
-            return []
-        try:
-            return json.loads(self._categories)
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-    @categories.setter
-    def categories(self, value):
-        if value is None:
-            self._categories = json.dumps([])
-        else:
-            # Ensure all items are strings
-            str_list = [str(item) for item in value if item is not None]
-            self._categories = json.dumps(str_list)
+    # Relationships
+    channel = relationship("Channel", back_populates="videos")
+    category = relationship("Category", back_populates="videos")
+    transcript = relationship("Transcript", back_populates="video", uselist=False)
+    digests = relationship("Digest", back_populates="video")
+    processing_logs = relationship("ProcessingLog", back_populates="video")
+    digest_interactions = relationship("DigestInteraction", back_populates="video")
 
     @property
     def is_processing(self) -> bool:
@@ -99,14 +73,3 @@ class Video(Base):
     @property
     def has_failed(self) -> bool:
         return self.processing_status == ProcessingStatus.FAILED
-
-    def __init__(self, **kwargs):
-        # Handle tags and categories
-        tags = kwargs.pop('tags', [])
-        categories = kwargs.pop('categories', [])
-        
-        super().__init__(**kwargs)
-        
-        # Set tags and categories using the property setters
-        self.tags = tags
-        self.categories = categories
