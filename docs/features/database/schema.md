@@ -82,9 +82,9 @@ erDiagram
 
     LLMS {
         int id PK
-        string name "LLM provider name"
+        string name "LLM provider name (indexed, part of unique constraint)"
         string description "Optional description/details"
-        numeric base_cost_per_token "Baseline cost per token"
+        numeric base_cost_per_token "Baseline cost per token (part of unique constraint)"
         timestamp created_at "Creation timestamp"
         timestamp updated_at "Last update timestamp"
     }
@@ -110,29 +110,37 @@ erDiagram
         int id PK
         int video_id FK "Associated video"
         int llm_id FK "LLM used for processing"
-        string request_type "Type of API request"
-        int tokens_used "Tokens used in request"
+        enum request_type "Type of API request (e.g., summarize, analyze_sentiment)"
+        int tokens_used "Total tokens used in request"
+        int input_tokens "Number of input tokens"
+        int output_tokens "Number of output tokens"
         float cost_estimate "Estimated cost of the API call"
+        int duration_ms "Processing duration in milliseconds"
+        timestamp started_at "When processing started"
+        timestamp completed_at "When processing finished"
+        jsonb error_details "Error information if failed"
+        jsonb request_params "Parameters used in the request"
+        jsonb response_metadata "Metadata from the response"
         timestamp created_at "Log creation timestamp"
         timestamp updated_at "Last update timestamp"
     }
 
     USER_DIGESTS {
         int id PK
-        int user_id FK "User who added the digest"
-        int digest_id FK "Digest added to the library"
-        timestamp added_at "Timestamp when digest was added"
+        int user_id FK "User who saved the digest (indexed)"
+        int digest_id FK "Digest that was saved (indexed)"
+        timestamp added_at "When the digest was saved (indexed)"
         timestamp created_at "Creation timestamp"
         timestamp updated_at "Last update timestamp"
     }
 
     DIGEST_INTERACTIONS {
         int id PK
-        int user_id FK "User performing the action"
-        int digest_id FK "Associated digest"
-        int video_id FK "Associated video"
-        string action "Action type: 'skipped' or 'watched'"
-        timestamp action_at "Timestamp when action occurred"
+        int user_id FK "User performing the action (indexed)"
+        int digest_id FK "Associated digest (indexed)"
+        int video_id FK "Associated video (indexed)"
+        enum action "Action type: 'watched', 'skipped', 'saved', 'shared'"
+        timestamp action_at "When the action occurred (indexed)"
         timestamp created_at "Creation timestamp"
         timestamp updated_at "Last update timestamp"
     }
@@ -214,12 +222,12 @@ Stores video transcript data with processing status:
 Transcripts are processed asynchronously after video metadata is retrieved from yt-dlp.
 
 ### LLMS
-Stores information about Language Learning Models used for digest generation:
-- `id`: Primary key
-- `name`: LLM provider name
-- `description`: Optional description/details
-- `base_cost_per_token`: Baseline cost per token
-- `created_at`: Creation timestamp
+Stores information about Language Learning Models:
+- `name`: Model name (e.g., 'gpt-4', 'claude-2')
+- `description`: Model capabilities and characteristics
+- `base_cost_per_token`: Base cost per token in USD
+
+Note: The combination of `name` and `base_cost_per_token` must be unique, allowing tracking of cost changes over time.
 
 ### DIGESTS
 Stores AI-generated video digests:
@@ -237,30 +245,42 @@ Stores AI-generated video digests:
 - `extra_data`: Additional metadata (e.g., chapter timestamps)
 
 ### PROCESSING_LOGS
-Tracks API usage and costs:
-- `id`: Primary key
-- `video_id`: Foreign key to associated video
-- `llm_id`: Foreign key to LLM used for processing
-- `request_type`: Type of API request
-- `tokens_used`: Tokens used in request
-- `cost_estimate`: Estimated cost of the API call
-- `created_at`: Log creation timestamp
+Tracks all LLM processing requests and their outcomes:
+- `video_id`: Associated video being processed
+- `llm_id`: LLM model used for the request
+- `request_type`: Enum of request types (summarize, analyze_sentiment, etc.)
+- `tokens_used`: Total tokens consumed
+- `input_tokens`: Number of input tokens
+- `output_tokens`: Number of output tokens
+- `cost_estimate`: Estimated cost in USD
+- `duration_ms`: Processing duration in milliseconds
+- `started_at`: When processing started
+- `completed_at`: When processing finished
+- `error_details`: Error information if failed (JSONB)
+- `request_params`: Parameters used in the request (JSONB)
+- `response_metadata`: Metadata from the response (JSONB)
 
 ### USER_DIGESTS
-Maps users to their saved digests:
-- `id`: Primary key
-- `user_id`: Foreign key to user who added the digest
-- `digest_id`: Foreign key to digest added to the library
-- `added_at`: Timestamp when digest was added
+Maps users to their saved digests, enabling personal digest libraries:
+- `user_id`: User who saved the digest
+- `digest_id`: Digest that was saved
+- `added_at`: When the digest was saved
+- `created_at`: When the record was created
+- `updated_at`: When the record was last updated
+
+The table enforces a unique constraint on (user_id, digest_id) to prevent duplicate saves. All foreign keys have ON DELETE CASCADE to maintain referential integrity. Indexes on user_id, digest_id, and added_at optimize common queries for user libraries and save timelines.
 
 ### DIGEST_INTERACTIONS
-Tracks user interactions with digests:
-- `id`: Primary key
-- `user_id`: Foreign key to user performing the action
-- `digest_id`: Foreign key to associated digest
-- `video_id`: Foreign key to associated video
-- `action`: Action type ('skipped' or 'watched')
-- `action_at`: Timestamp when action occurred
+Tracks user interactions with digests for analytics and personalization:
+- `user_id`: User who performed the action
+- `digest_id`: Digest being interacted with
+- `video_id`: Video associated with the digest
+- `action`: Type of interaction (watched, skipped, saved, shared)
+- `action_at`: When the interaction occurred
+- `created_at`: When the record was created
+- `updated_at`: When the record was last updated
+
+All foreign keys have ON DELETE CASCADE to maintain referential integrity. The table includes indexes on all foreign keys and the action_at timestamp to optimize common queries for user activity and interaction timelines.
 
 ### USERS
 Stores user information:
