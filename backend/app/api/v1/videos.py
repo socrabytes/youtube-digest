@@ -9,7 +9,8 @@ import re
 from app.db.database import get_db, SessionLocal
 from app.models.video import Video as VideoModel, ProcessingStatus
 from app.models.channel import Channel as ChannelModel
-from app.models.transcript import Transcript as TranscriptModel
+from app.models.transcript import Transcript as TranscriptModel, TranscriptStatus
+from app.models.digest import Digest as DigestModel, DigestType
 from app.services.video_processor import (
     VideoProcessor,
     VideoProcessingError,
@@ -86,102 +87,172 @@ class VideoResponse(BaseModel):
         from_attributes = True
 
 async def process_video_background(video_id: int):
-    """Background task for processing a video."""
-    logger.info(f"[Background Task] Starting processing for video ID: {video_id}")
+    """Process video in the background."""
+    # Create a new session for this background task
     db = SessionLocal()
-    failed_stages = []
-    
     try:
-        logger.info(f"[Background Task] Retrieved database session for video ID: {video_id}")
-        video = db.query(VideoModel).filter(VideoModel.id == video_id).first()
-        if video is None:
-            logger.error(f"[Background Task] Video not found with ID: {video_id}")
+        # Get the video
+        video = db.query(VideoModel).get(video_id)
+        if not video:
+            logger.error(f"[Background Task] Video with ID {video_id} not found")
             return
         
-        logger.info(f"[Background Task] Updating status to PROCESSING for video ID: {video_id}")
+        logger.info(f"[Background Task] Processing video ID: {video_id}, Title: {video.title}")
+        
+        # Update video status to processing
         video.processing_status = ProcessingStatus.PROCESSING
         db.commit()
-        logger.info(f"[Background Task] Status updated to PROCESSING for video ID: {video_id}")
         
-        processor = VideoProcessor()
+        failed_stages = []
         
+        # Step 1: Extract transcript
         try:
-            # Check if we need to extract transcript
+            # Check if transcript already exists
             transcript = db.query(TranscriptModel).filter(
                 TranscriptModel.video_id == video_id,
-                TranscriptModel.status == "processed"
+                TranscriptModel.status == TranscriptStatus.PROCESSED
             ).first()
             
             if not transcript:
-                logger.info(f"[Background Task] Starting transcript extraction for video ID: {video_id}")
-                transcript_service = TranscriptService()
-                transcript_text, meta = transcript_service.extract_transcript(video.webpage_url)
-                logger.info(f"[Background Task] Extracted {len(transcript_text)} character transcript for video ID: {video_id}")
+                logger.info(f"[Background Task] Extracting transcript for video ID: {video_id}")
                 
-                # Create new transcript record
-                new_transcript = TranscriptModel(
-                    video_id=video_id,
-                    content=transcript_text,
-                    source_url=meta.get('source'),
-                    status="processed",
-                    fetched_at=datetime.utcnow(),
-                    processed_at=datetime.utcnow()
-                )
-                db.add(new_transcript)
-                db.commit()
-                
-                # Update video with transcript source
-                # video.transcript_source = meta.get('source')  # This field doesn't exist in the Video model
-                video.processing_status = ProcessingStatus.SUMMARIZING
-                db.commit()
-                
-                logger.info(f"[Background Task] Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
+                try:
+                    # Extract transcript
+                    transcript_service = TranscriptService()
+                    transcript_text, meta = transcript_service.extract_transcript(video.webpage_url)
+                    
+                    # Create new transcript
+                    transcript = TranscriptModel(
+                        video_id=video_id,
+                        content=transcript_text,
+                        source_url=meta.get('source', 'unknown'),
+                        status=TranscriptStatus.PROCESSED,
+                        fetched_at=datetime.utcnow(),
+                        processed_at=datetime.utcnow()
+                    )
+                    db.add(transcript)
+                    db.commit()
+                    db.refresh(transcript)
+                    
+                    logger.info(f"[Background Task] Transcript saved for video ID: {video_id}")
+                except Exception as e:
+                    logger.error(f"[Background Task] Error extracting transcript: {str(e)}", exc_info=True)
+                    # Create a placeholder transcript to continue processing
+                    transcript = TranscriptModel(
+                        video_id=video_id,
+                        content=f"[Failed to extract transcript: {str(e)}]",
+                        source_url="error",
+                        status=TranscriptStatus.PROCESSED,
+                        fetched_at=datetime.utcnow(),
+                        processed_at=datetime.utcnow(),
+                        error_log={"error": str(e)}
+                    )
+                    db.add(transcript)
+                    db.commit()
+                    db.refresh(transcript)
+                    
+                    logger.info(f"[Background Task] Created placeholder transcript for video ID: {video_id}")
             else:
                 logger.info(f"[Background Task] Using existing transcript for video ID: {video_id}")
-                video.processing_status = ProcessingStatus.SUMMARIZING
-                db.commit()
-            
-            # Generate summary
-            logger.info(f"[Background Task] Starting summary generation for video ID: {video_id}")
-            summarizer = OpenAISummarizer()
-            result = summarizer.generate(transcript.content)
-            
-            logger.info(f"[Background Task] Summary generated for video ID: {video_id}")
-            video.summary = result["summary"]
-            # video.openai_usage = result["usage"]  # This field doesn't exist in the Video model
-            video.processed = True
-            video.processing_status = ProcessingStatus.COMPLETED
-            video.last_processed = datetime.utcnow()
-            db.commit()
-            
-            logger.info(f"[Background Task] Video processing completed for video ID: {video_id}")
-            
-        except VideoTranscriptError as e:
-            logger.error(f"[Background Task] Transcript error: {str(e)}")
-            failed_stages.append("transcript_extraction")
-            video.error_message = f"Failed to extract transcript: {str(e)}"
-            video.processing_status = ProcessingStatus.FAILED
-            db.commit()
-            
-        except SummaryGenerationError as e:
-            logger.error(f"[Background Task] Summary error: {str(e)}")
-            failed_stages.append("summary_generation")
-            video.error_message = f"Failed to generate summary: {str(e)}"
-            video.processing_status = ProcessingStatus.FAILED
-            db.commit()
-            
         except Exception as e:
-            logger.error(f"[Background Task] Unexpected error: {str(e)}", exc_info=True)
-            failed_stages.append("unknown")
-            video.error_message = f"Unexpected error: {str(e)}"
-            video.processing_status = ProcessingStatus.FAILED
-            db.commit()
+            logger.error(f"[Background Task] Error in transcript stage: {str(e)}", exc_info=True)
+            failed_stages.append("transcript")
+            # Continue to next stage
+        
+        # Step 2: Generate summary
+        try:
+            # Check if digest already exists
+            digest = db.query(DigestModel).filter(DigestModel.video_id == video_id).first()
             
+            if not digest:
+                logger.info(f"[Background Task] Generating summary for video ID: {video_id}")
+                
+                # Get the transcript
+                transcript = db.query(TranscriptModel).filter(
+                    TranscriptModel.video_id == video_id,
+                    TranscriptModel.status == TranscriptStatus.PROCESSED
+                ).first()
+                
+                if not transcript:
+                    logger.error(f"[Background Task] No transcript found for video ID: {video_id}")
+                    raise ValueError("No transcript available for summary generation")
+                
+                # Generate summary
+                summarizer = OpenAISummarizer()
+                summary_result = summarizer.generate(transcript.content)
+                
+                # Create new digest
+                digest = DigestModel(
+                    video_id=video_id,
+                    digest=summary_result["summary"],
+                    digest_type=DigestType.SUMMARY,
+                    llm_id=91,  # Default GPT-4 model
+                    user_id=1,  # Default user
+                    tokens_used=summary_result["usage"].get("total_tokens", 0),
+                    cost=summary_result["usage"].get("estimated_cost_usd", 0.0),
+                    model_version="gpt-4-0125-preview",
+                    generated_at=datetime.utcnow(),
+                    extra_data=summary_result["usage"]
+                )
+                db.add(digest)
+                db.commit()
+                db.refresh(digest)
+                
+                logger.info(f"[Background Task] Summary saved for video ID: {video_id}")
+            else:
+                logger.info(f"[Background Task] Using existing summary for video ID: {video_id}")
+        except Exception as e:
+            logger.error(f"[Background Task] Error in summary stage: {str(e)}", exc_info=True)
+            failed_stages.append("summary")
+            # Continue to next stage
+        
+        # Update video status based on processing results
+        try:
+            # Refresh video from database to avoid stale data
+            db.refresh(video)
+            
+            if not failed_stages:
+                video.processing_status = ProcessingStatus.COMPLETED
+                video.processed = True
+                video.last_processed = datetime.utcnow()
+                logger.info(f"[Background Task] Processing completed successfully for video ID: {video_id}")
+            else:
+                video.processing_status = ProcessingStatus.FAILED
+                video.error_message = f"Failed stages: {', '.join(failed_stages)}"
+                logger.error(f"[Background Task] Processing failed for video ID: {video_id}. Failed stages: {failed_stages}")
+            
+            db.commit()
+        except Exception as e:
+            logger.error(f"[Background Task] Error updating video status: {str(e)}", exc_info=True)
+            # Try one more time with a new transaction
+            try:
+                db.rollback()
+                video = db.query(VideoModel).get(video_id)
+                if video:
+                    video.processing_status = ProcessingStatus.FAILED if failed_stages else ProcessingStatus.COMPLETED
+                    video.processed = not bool(failed_stages)
+                    video.error_message = f"Failed stages: {', '.join(failed_stages)}" if failed_stages else None
+                    video.last_processed = datetime.utcnow()
+                    db.commit()
+            except Exception as e2:
+                logger.error(f"[Background Task] Final error updating video status: {str(e2)}", exc_info=True)
+        
+        logger.info(f"[Background Task] Processing completed for video ID: {video_id}. Failed stages: {failed_stages}")
+        
     except Exception as e:
-        logger.error(f"[Background Task] Critical error: {str(e)}", exc_info=True)
+        logger.error(f"[Background Task] Unexpected error: {str(e)}", exc_info=True)
+        try:
+            # Try to update video status to failed
+            video = db.query(VideoModel).get(video_id)
+            if video:
+                video.processing_status = ProcessingStatus.FAILED
+                video.error_message = f"Unexpected error: {str(e)}"
+                db.commit()
+        except Exception as e2:
+            logger.error(f"[Background Task] Error updating video status after exception: {str(e2)}", exc_info=True)
+            db.rollback()
     finally:
         db.close()
-        logger.info(f"[Background Task] Processing completed for video ID: {video_id}. Failed stages: {failed_stages}")
 
 @router.post("/videos/", response_model=VideoResponse)
 async def create_video(
@@ -316,6 +387,16 @@ async def process_video(
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
 
+        # Check if digest already exists
+        existing_digest = db.query(DigestModel).filter(DigestModel.video_id == video_id).first()
+        if existing_digest and existing_digest.digest:
+            logger.info(f"Using existing digest for video ID: {video_id}")
+            # Map fields for API compatibility
+            video.url = video.webpage_url
+            video.thumbnail_url = video.thumbnail
+            video.summary = existing_digest.digest
+            return video
+
         # Reset error state if retrying
         video.error_message = None
         video.processing_status = ProcessingStatus.PENDING
@@ -332,7 +413,7 @@ async def process_video(
         return video
         
     except Exception as e:
-        logger.error(f"Error starting video processing: {str(e)}", exc_info=True)
+        logger.error(f"Error processing video: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/videos/", response_model=List[VideoResponse])
@@ -344,10 +425,42 @@ async def list_videos(
     """Get all videos with pagination"""
     try:
         videos = db.query(VideoModel).offset(skip).limit(limit).all()
+        
+        # Get all video IDs
+        video_ids = [video.id for video in videos]
+        
+        # Get the latest digest for each video
+        latest_digests = {}
+        if video_ids:
+            # Use a subquery to get the latest digest for each video
+            from sqlalchemy import func
+            
+            # Get the maximum generated_at timestamp for each video_id
+            latest_digest_times = db.query(
+                DigestModel.video_id,
+                func.max(DigestModel.generated_at).label('latest_time')
+            ).filter(DigestModel.video_id.in_(video_ids)).group_by(DigestModel.video_id).subquery()
+            
+            # Join with the digests table to get the actual digest records
+            latest_digest_query = db.query(DigestModel).join(
+                latest_digest_times,
+                (DigestModel.video_id == latest_digest_times.c.video_id) & 
+                (DigestModel.generated_at == latest_digest_times.c.latest_time)
+            )
+            
+            # Create a dictionary mapping video_id to digest
+            for digest in latest_digest_query:
+                latest_digests[digest.video_id] = digest
+        
+        # Map fields for API compatibility and add summaries
         for video in videos:
-            # Map fields for API compatibility
             video.url = video.webpage_url
             video.thumbnail_url = video.thumbnail
+            
+            # Add summary from the latest digest if available
+            if video.id in latest_digests:
+                video.summary = latest_digests[video.id].digest
+                
         return videos
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -359,9 +472,20 @@ async def get_video(video_id: int, db: Session = Depends(get_db)):
         video = db.query(VideoModel).filter(VideoModel.id == video_id).first()
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
+        
         # Map fields for API compatibility
         video.url = video.webpage_url
         video.thumbnail_url = video.thumbnail
+        
+        # Get the latest digest for this video and set the summary
+        latest_digest = db.query(DigestModel).filter(
+            DigestModel.video_id == video_id
+        ).order_by(DigestModel.generated_at.desc()).first()
+        
+        if latest_digest:
+            # Map content to summary for API compatibility
+            video.summary = latest_digest.digest
+            
         return video
     except HTTPException:
         raise
@@ -375,12 +499,21 @@ async def get_video_by_youtube_id(youtube_id: str, db: Session = Depends(get_db)
         video = db.query(VideoModel).filter(VideoModel.youtube_id == youtube_id).first()
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
+        
         # Map fields for API compatibility
         video.url = video.webpage_url
         video.thumbnail_url = video.thumbnail
+        
+        # Get the latest digest for this video and set the summary
+        latest_digest = db.query(DigestModel).filter(
+            DigestModel.video_id == video.id
+        ).order_by(DigestModel.generated_at.desc()).first()
+        
+        if latest_digest:
+            # Map content to summary for API compatibility
+            video.summary = latest_digest.digest
+            
         return video
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -429,35 +562,55 @@ async def generate_summary(
         # Get transcript if available
         transcript = db.query(TranscriptModel).filter(
             TranscriptModel.video_id == video_id,
-            TranscriptModel.status == "processed"
+            TranscriptModel.status == TranscriptStatus.PROCESSED
         ).first()
         
         # Extract transcript if not already present
         if not transcript:
-            transcript_service = TranscriptService()
-            transcript_text, meta = transcript_service.extract_transcript(video.webpage_url)
-            
-            # Create new transcript
-            transcript = TranscriptModel(
-                video_id=video_id,
-                content=transcript_text,
-                source_url=meta.get('source'),
-                status="processed",
-                fetched_at=datetime.utcnow(),
-                processed_at=datetime.utcnow()
-            )
-            db.add(transcript)
-            db.commit()
-            db.refresh(transcript)
-            
-            # Update video with transcript source
-            # video.transcript_source = meta.get('source')  # This field doesn't exist in the Video model
-            video.processing_status = ProcessingStatus.SUMMARIZING
-            db.commit()
-            
-            logger.info(f"[Background Task] Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
+            try:
+                transcript_service = TranscriptService()
+                transcript_text, meta = transcript_service.extract_transcript(video.webpage_url)
+                
+                # Create new transcript
+                transcript = TranscriptModel(
+                    video_id=video_id,
+                    content=transcript_text,
+                    source_url=meta.get('source', 'unknown'),
+                    status=TranscriptStatus.PROCESSED,
+                    fetched_at=datetime.utcnow(),
+                    processed_at=datetime.utcnow()
+                )
+                db.add(transcript)
+                db.commit()
+                db.refresh(transcript)
+                
+                # Update video status
+                video.processing_status = ProcessingStatus.SUMMARIZING
+                db.commit()
+                
+                logger.info(f"Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
+            except Exception as e:
+                logger.error(f"Error extracting transcript: {str(e)}", exc_info=True)
+                # Create a placeholder transcript to continue processing
+                transcript = TranscriptModel(
+                    video_id=video_id,
+                    content=f"[Failed to extract transcript: {str(e)}]",
+                    source_url="error",
+                    status=TranscriptStatus.PROCESSED,
+                    fetched_at=datetime.utcnow(),
+                    processed_at=datetime.utcnow(),
+                    error_log={"error": str(e)}
+                )
+                db.add(transcript)
+                db.commit()
+                db.refresh(transcript)
+                
+                # Continue processing despite transcript error
+                video.processing_status = ProcessingStatus.SUMMARIZING
+                db.commit()
+                logger.info(f"Created placeholder transcript and continuing for video ID: {video_id}")
         else:
-            logger.info(f"[Background Task] Using existing transcript for video ID: {video_id}")
+            logger.info(f"Using existing transcript for video ID: {video_id}")
             video.processing_status = ProcessingStatus.SUMMARIZING
             db.commit()
             
@@ -465,13 +618,6 @@ async def generate_summary(
         background_tasks.add_task(process_video_background, video_id)
         
         return {"message": "Summary generation started"}
-        
-    except VideoTranscriptError as e:
-        logger.error(f"Transcript error: {str(e)}")
-        video.error_message = str(e)
-        video.processing_status = ProcessingStatus.FAILED
-        db.commit()
-        raise HTTPException(status_code=400, detail=str(e))
         
     except Exception as e:
         logger.error(f"Error: {str(e)}", exc_info=True)

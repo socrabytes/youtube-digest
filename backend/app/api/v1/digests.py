@@ -107,10 +107,15 @@ async def generate_digest_background(digest_id: int):
         db.close()
 
 @router.get("/digests/", response_model=List[DigestResponse])
-async def list_digests(db: Session = Depends(get_db)):
-    """Get all digests"""
+async def list_digests(video_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get all digests or filter by video_id if provided"""
     try:
-        return db.query(DigestModel).all()
+        query = db.query(DigestModel)
+        
+        if video_id is not None:
+            query = query.filter(DigestModel.video_id == video_id)
+            
+        return query.all()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -170,6 +175,16 @@ async def create_digest(
         if video is None:
             raise HTTPException(status_code=404, detail="Video not found")
         
+        # Check if digest already exists for this video
+        existing_digest = db.query(DigestModel).filter(
+            DigestModel.video_id == digest.video_id,
+            DigestModel.digest_type == digest.digest_type
+        ).first()
+        
+        if existing_digest and existing_digest.digest:
+            logger.info(f"Using existing digest for video ID: {digest.video_id}")
+            return existing_digest
+        
         # Check if user exists
         user = db.query(UserModel).filter(UserModel.id == digest.user_id).first()
         if user is None:
@@ -201,6 +216,13 @@ async def create_digest(
                 db.refresh(default_llm)
                 digest.llm_id = default_llm.id
         
+        # If we have an existing digest but it's empty, update it instead of creating a new one
+        if existing_digest:
+            logger.info(f"Updating existing empty digest for video ID: {digest.video_id}")
+            # Start background task to generate digest
+            background_tasks.add_task(generate_digest_background, existing_digest.id)
+            return existing_digest
+        
         # Create new digest
         db_digest = DigestModel(
             video_id=digest.video_id,
@@ -223,6 +245,7 @@ async def create_digest(
         
         return db_digest
     except Exception as e:
+        logger.error(f"Error creating digest: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/videos/{video_id}/digests", response_model=DigestResponse)

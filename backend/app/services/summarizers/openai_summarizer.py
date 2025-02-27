@@ -131,6 +131,24 @@ Keep the summary focused, informative, and under 250 words."""
                         "timestamp": datetime.utcnow().isoformat()
                     }
                 }
+            
+            # Check if this is a placeholder transcript
+            if transcript.startswith("[") and (
+                "No transcript available" in transcript or 
+                "Failed to extract transcript" in transcript or
+                "Error extracting transcript" in transcript
+            ):
+                logger.warning(f"Using placeholder summary for placeholder transcript: {transcript[:100]}...")
+                return {
+                    "summary": "Unable to generate a summary for this video due to transcript unavailability. The video may not have captions, or there might have been an error retrieving them.",
+                    "usage": {
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                        "total_tokens": 0,
+                        "estimated_cost_usd": 0.0,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                }
                 
             # Truncate text to avoid token limits while preserving context
             truncated_text = transcript[:15000]  # Approximately 3750 tokens
