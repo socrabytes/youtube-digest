@@ -132,6 +132,32 @@ export default function DigestsPage() {
     }
   };
 
+  // Simple markdown renderer using HTML
+  const renderMarkdown = (text: string) => {
+    // Replace headers
+    let html = text
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mt-5 mb-3">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>');
+    
+    // Replace bold and italic
+    html = html
+      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/gim, '<em>$1</em>');
+    
+    // Replace lists
+    html = html
+      .replace(/^\s*\d+\.\s+(.*$)/gim, '<li class="ml-6 list-decimal">$1</li>')
+      .replace(/^\s*[\-\*]\s+(.*$)/gim, '<li class="ml-6 list-disc">$1</li>');
+    
+    // Replace paragraphs (must be done last)
+    html = html
+      .replace(/\n\n/gim, '</p><p class="mb-4">')
+      .replace(/\n/gim, '<br>');
+    
+    return { __html: `<p class="mb-4">${html}</p>` };
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -291,7 +317,11 @@ export default function DigestsPage() {
                     <div className="flex flex-wrap items-center text-gray-600 mb-3">
                       {selectedVideo.channel_title ? (
                         <span className="mr-4">{selectedVideo.channel_title}</span>
-                      ) : null}
+                      ) : (
+                        channels.find(c => c.id === selectedVideo.channel_id) && (
+                          <span className="mr-4">{channels.find(c => c.id === selectedVideo.channel_id)?.name}</span>
+                        )
+                      )}
                       {selectedVideo.view_count ? (
                         <span className="mr-4">{selectedVideo.view_count.toLocaleString()} views</span>
                       ) : null}
@@ -329,17 +359,7 @@ export default function DigestsPage() {
               <div className="bg-white p-6 rounded-lg shadow-sm">
                 <h3 className="font-semibold text-xl mb-4 text-blue-800">Digest</h3>
                 {selectedVideo.summary ? (
-                  <div className="prose max-w-none">
-                    {selectedVideo.summary.includes('**') || selectedVideo.summary.includes('#') ? (
-                      // If the summary contains markdown formatting, render it as is
-                      <p className="whitespace-pre-line">{selectedVideo.summary}</p>
-                    ) : (
-                      // Otherwise, try to structure it with paragraphs for better readability
-                      selectedVideo.summary.split('\n\n').map((paragraph, index) => (
-                        <p key={index} className="mb-4">{paragraph}</p>
-                      ))
-                    )}
-                  </div>
+                  <div className="prose max-w-none" dangerouslySetInnerHTML={renderMarkdown(selectedVideo.summary)} />
                 ) : (
                   <div className="bg-gray-50 p-4 rounded border border-gray-200 text-gray-500">
                     <p>No digest available for this video.</p>
