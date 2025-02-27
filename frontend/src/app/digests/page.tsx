@@ -1,14 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorDisplay from '@/components/common/ErrorDisplay';
+import { useKeyboardShortcut } from '@/utils/useKeyboardShortcut';
+import KeyboardShortcutsHelp from '@/components/common/KeyboardShortcutsHelp';
 import { api } from '@/services/api';
 import type { Video, Channel } from '@/types/video';
+import { ArrowLeftIcon } from '@heroicons/react/outline';
 
 export default function DigestsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const videoIdParam = searchParams.get('video');
   const urlParam = searchParams.get('url');
   
@@ -214,11 +220,76 @@ export default function DigestsPage() {
   const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
   const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
 
+  const handleUrlSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      // Make API call to generate digest
+      const response = await api.createDigest(url);
+      
+      // Set the newly created video as selected
+      if (response) {
+        const newVideoData = await api.fetchVideos({ url });
+        if (newVideoData.length > 0) {
+          setVideos(prev => [...prev, ...newVideoData.filter(v => !prev.some(p => p.id === v.id))]);
+          setSelectedVideo(newVideoData[0]);
+        }
+      }
+    } catch (err) {
+      setError(`Failed to generate digest: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcut('b', () => {
+    router.push('/library');
+  });
+
+  useKeyboardShortcut('n', () => {
+    // Focus on URL input
+    const urlInput = document.getElementById('url-input');
+    if (urlInput) {
+      urlInput.focus();
+    }
+  });
+
+  useKeyboardShortcut('ArrowUp', () => {
+    // Navigate to previous video in the list
+    if (!videos.length) return;
+    
+    const currentIndex = selectedVideo 
+      ? videos.findIndex(v => v.id === selectedVideo.id) 
+      : -1;
+    
+    if (currentIndex > 0) {
+      setSelectedVideo(videos[currentIndex - 1]);
+    }
+  });
+
+  useKeyboardShortcut('ArrowDown', () => {
+    // Navigate to next video in the list
+    if (!videos.length) return;
+    
+    const currentIndex = selectedVideo 
+      ? videos.findIndex(v => v.id === selectedVideo.id) 
+      : -1;
+    
+    if (currentIndex < videos.length - 1 && currentIndex !== -1) {
+      setSelectedVideo(videos[currentIndex + 1]);
+    }
+  });
+
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="flex justify-center items-center h-64">
-          <LoadingSpinner size="large" />
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner size="large" text="Loading digests..." />
         </div>
       </MainLayout>
     );
@@ -252,12 +323,12 @@ export default function DigestsPage() {
           {/* Video list with improved styling */}
           <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ maxHeight: 'calc(100vh - 250px)' }}>
             {isLoading ? (
-              <div className="p-4 text-center text-sm text-gray-500">
-                <div className="animate-pulse">Loading videos...</div>
+              <div className="p-4 text-center">
+                <LoadingSpinner size="small" text="Loading videos..." />
               </div>
             ) : currentVideos.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
-                No videos found. Add one using the URL field above.
+                No videos match your search.
               </div>
             ) : (
               <div>
@@ -380,19 +451,22 @@ export default function DigestsPage() {
         <div className="flex-1 p-6">
           {/* URL Input */}
           <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
+            <form onSubmit={handleUrlSubmit} className="flex flex-col sm:flex-row gap-4">
               <input
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=..."
                 className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                id="url-input"
                 disabled={isSubmitting}
               />
-              <button
+              <button 
                 type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-colors duration-200 disabled:bg-indigo-400"
-                disabled={!url || isSubmitting}
+                disabled={isSubmitting || !url}
+                className={`${
+                  isSubmitting || !url ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                } text-white font-medium py-2 px-4 rounded-md transition-colors`}
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center">
@@ -404,15 +478,35 @@ export default function DigestsPage() {
                 )}
               </button>
             </form>
-            {error && <div className="mt-4 text-red-500">{error}</div>}
+            {error && <div className="mt-4"><ErrorDisplay title="Error" message={error} level="error" /></div>}
           </div>
 
-          {selectedVideo ? (
+          {!selectedVideo && !isSubmitting && (
+            <div className="flex-1 p-8 flex items-center justify-center">
+              <EmptyState
+                title="No digest selected"
+                description="Select a video from the list or enter a URL to generate a new digest."
+                icon={<svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
+              />
+            </div>
+          )}
+
+          {selectedVideo && (
             <>
               {/* Video Display - Redesigned for better balance */}
               <div className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
-                {/* Video header with thumbnail background and overlay */}
+                {/* Back button and video header with thumbnail background and overlay */}
                 <div className="relative">
+                  {/* Back to Library button */}
+                  <button 
+                    onClick={() => router.push('/library')}
+                    className="absolute top-4 left-4 z-10 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white px-3 py-2 rounded-md transition-colors"
+                    aria-label="Back to library"
+                  >
+                    <ArrowLeftIcon className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Library</span>
+                  </button>
+                  
                   {/* Background thumbnail with overlay */}
                   <div className="relative h-48 md:h-64 overflow-hidden">
                     {selectedVideo.thumbnail_url ? (
@@ -491,44 +585,20 @@ export default function DigestsPage() {
                 )}
               </div>
             </>
-          ) : (
-            <div className="flex flex-col items-center justify-center p-6 md:p-10 bg-white rounded-lg shadow-sm mx-auto max-w-3xl">
-              <h2 className="text-2xl font-bold text-center mb-6">Welcome to Your Digests</h2>
-              <p className="text-center text-gray-600 mb-8">Select a video from the sidebar to view its digest.</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-                  <h3 className="font-semibold text-lg mb-3 text-indigo-600">Getting Started</h3>
-                  <ul className="space-y-2 text-gray-700">
-                    <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">1</span>
-                      Browse your digests in the sidebar
-                    </li>
-                    <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">2</span>
-                      Click on any digest to view its summary
-                    </li>
-                  </ul>
-                </div>
-                
-                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-                  <h3 className="font-semibold text-lg mb-3 text-indigo-600">Add New Content</h3>
-                  <ul className="space-y-2 text-gray-700">
-                    <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">1</span>
-                      Add new digests using the YouTube URL field above
-                    </li>
-                    <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">2</span>
-                      Filter by channels or categories using the sidebar
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           )}
         </div>
       </div>
+      
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp
+        shortcuts={[
+          { key: '?', description: 'Show keyboard shortcuts', category: 'General' },
+          { key: 'b', description: 'Back to library', category: 'Navigation' },
+          { key: 'n', description: 'Focus URL input', category: 'Content' },
+          { key: '↑', description: 'Previous video', category: 'Navigation' },
+          { key: '↓', description: 'Next video', category: 'Navigation' },
+        ]}
+      />
     </MainLayout>
   );
 }

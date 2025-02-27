@@ -6,6 +6,11 @@ import { api } from '@/services/api';
 import type { Video } from '@/types/video';
 import VideoGrid from '@/components/video/VideoGrid';
 import VideoList from '@/components/video/VideoList';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorDisplay from '@/components/common/ErrorDisplay';
+import { useKeyboardShortcut } from '@/utils/useKeyboardShortcut';
+import KeyboardShortcutsHelp from '@/components/common/KeyboardShortcutsHelp';
 import {
   FilterIcon,
   ViewGridIcon,
@@ -62,6 +67,23 @@ export default function LibraryPage() {
     { label: 'Views (highest)', value: 'views_desc' },
     { label: 'Views (lowest)', value: 'views_asc' }
   ];
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [videosPerPage] = useState(12);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
+  
+  // Get current videos for pagination
+  const indexOfLastVideo = currentPage * videosPerPage;
+  const indexOfFirstVideo = indexOfLastVideo - videosPerPage;
+  const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
+
+  // Change page
+  const paginate = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     // Set initial view based on URL params if present
@@ -195,14 +217,44 @@ export default function LibraryPage() {
     }
   };
 
+  // Keyboard shortcuts
+  useKeyboardShortcut('g', () => {
+    setView('grid');
+  });
+  
+  useKeyboardShortcut('l', () => {
+    setView('list');
+  });
+  
+  useKeyboardShortcut('f', () => {
+    // setIsFilterMenuOpen(!isFilterMenuOpen);
+  });
+
+  useKeyboardShortcut('s', () => {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  });
+
+  // Hot keys for pagination
+  useKeyboardShortcut('ArrowRight', () => {
+    if (currentPage < totalPages) {
+      paginate(currentPage + 1);
+    }
+  });
+
+  useKeyboardShortcut('ArrowLeft', () => {
+    if (currentPage > 1) {
+      paginate(currentPage - 1);
+    }
+  });
+
   if (loading) {
     return (
       <MainLayout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
-            <p className="mt-4 text-gray-600">Loading video library...</p>
-          </div>
+          <LoadingSpinner size="large" text="Loading video library..." />
         </div>
       </MainLayout>
     );
@@ -211,17 +263,13 @@ export default function LibraryPage() {
   if (error) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-500 text-5xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              Try Again
-            </button>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <ErrorDisplay
+              title="Failed to load video library"
+              message={error}
+              onRetry={() => window.location.reload()}
+            />
           </div>
         </div>
       </MainLayout>
@@ -247,6 +295,7 @@ export default function LibraryPage() {
                 className="w-full pl-3 pr-10 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                id="search-input"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <SearchIcon className="h-4 w-4 text-gray-400" />
@@ -370,25 +419,32 @@ export default function LibraryPage() {
 
           {/* Videos Display */}
           <div>
-            {filteredVideos.length === 0 ? (
-              <div className="bg-white shadow rounded-lg p-8 text-center">
-                <InformationCircleIcon className="mx-auto h-12 w-12 text-indigo-400" />
-                <h3 className="mt-4 text-lg font-medium text-gray-900">No videos found</h3>
-                <p className="mt-2 text-gray-500">
-                  Try adjusting your search or filters to find what you're looking for.
-                </p>
-              </div>
+            {currentVideos.length === 0 ? (
+              <EmptyState
+                title="No videos found"
+                description="Try adjusting your search or filters to find what you're looking for."
+                icon={<InformationCircleIcon className="h-12 w-12" />}
+                action={{
+                  label: "Reset Filters",
+                  onClick: () => {
+                    setSearchTerm('');
+                    setSelectedCategories([]);
+                    setDurationFilter('all');
+                    setSortBy('date_desc');
+                  }
+                }}
+              />
             ) : (
               <>
                 {view === 'grid' ? (
                   <VideoGrid 
-                    videos={filteredVideos} 
+                    videos={currentVideos} 
                     onVideoSelect={handleVideoSelect} 
                     channels={channels}
                   />
                 ) : (
                   <VideoList 
-                    videos={filteredVideos} 
+                    videos={currentVideos} 
                     onVideoSelect={handleVideoSelect} 
                     channels={channels}
                   />
@@ -396,8 +452,54 @@ export default function LibraryPage() {
               </>
             )}
           </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center mt-6">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => paginate(1)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
+              >
+                First
+              </button>
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
+              >
+                Prev
+              </button>
+              <span className="px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-100">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => paginate(totalPages)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
+              >
+                Last
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp
+        shortcuts={[
+          { key: '?', description: 'Show keyboard shortcuts', category: 'General' },
+          { key: 'g', description: 'Switch to grid view', category: 'Navigation' },
+          { key: 'l', description: 'Switch to list view', category: 'Navigation' },
+          { key: 's', description: 'Focus search box', category: 'Search & Filter' },
+          { key: 'f', description: 'Toggle filter menu', category: 'Search & Filter' },
+          { key: '←', description: 'Previous page', category: 'Pagination' },
+          { key: '→', description: 'Next page', category: 'Pagination' },
+        ]}
+      />
     </MainLayout>
   );
 }
