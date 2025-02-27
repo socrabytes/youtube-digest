@@ -9,7 +9,7 @@ export interface Video {
   duration: number;
   view_count?: number;
   subscriber_count?: number;
-  channel_id?: string;
+  channel_id?: number;
   channel_title?: string;
   upload_date?: string;
   like_count?: number;
@@ -44,6 +44,17 @@ export interface VideoDigest {
 export interface VideoTimestamp {
   time: number;
   description: string;
+}
+
+export interface Channel {
+  id: number;
+  name: string;
+  youtube_channel_id: string;
+  thumbnail_url?: string;
+  subscriber_count?: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface VideoFilterOptions {

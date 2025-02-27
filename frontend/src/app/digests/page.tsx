@@ -4,17 +4,20 @@ import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { api } from '@/services/api';
-import type { Video } from '@/types/video';
+import type { Video, Channel } from '@/types/video';
 
 export default function DigestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [allVideos, setAllVideos] = useState<Video[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [channels, setChannels] = useState<any[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch videos with digests
@@ -23,6 +26,7 @@ export default function DigestsPage() {
       try {
         const data = await api.fetchVideos({ sortBy: 'date', timeRange: 'all', hasDigest: true });
         setVideos(data);
+        setAllVideos(data);
         
         // Don't automatically select a video on initial load
         // This addresses feedback #3
@@ -72,6 +76,7 @@ export default function DigestsPage() {
       // Refresh the videos list
       const data = await api.fetchVideos({ sortBy: 'date', timeRange: 'all', hasDigest: true });
       setVideos(data);
+      setAllVideos(data);
       
       // Find the newly created digest's video and select it
       const newVideo = data.find(v => v.id === digestResponse.video_id);
@@ -93,6 +98,40 @@ export default function DigestsPage() {
     setSelectedVideo(video);
   };
 
+  const handleChannelSelect = (channelId: number, channelName: string) => {
+    if (selectedChannel === channelId) {
+      // If clicking the already selected channel, clear the filter
+      setSelectedChannel(null);
+      setSelectedCategory(null);
+      setVideos(allVideos);
+    } else {
+      // Filter videos by the selected channel
+      setSelectedChannel(channelId);
+      setSelectedCategory(null);
+      const filteredVideos = allVideos.filter(video => 
+        video.channel_id && video.channel_id.toString() === channelId.toString()
+      );
+      setVideos(filteredVideos);
+    }
+  };
+
+  const handleCategorySelect = (category: string) => {
+    if (selectedCategory === category) {
+      // If clicking the already selected category, clear the filter
+      setSelectedCategory(null);
+      setSelectedChannel(null);
+      setVideos(allVideos);
+    } else {
+      // Filter videos by the selected category
+      setSelectedCategory(category);
+      setSelectedChannel(null);
+      const filteredVideos = allVideos.filter(video => 
+        video.categories && video.categories.includes(category)
+      );
+      setVideos(filteredVideos);
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -108,6 +147,36 @@ export default function DigestsPage() {
       <div className="flex">
         {/* Sidebar */}
         <div className="w-64 bg-gray-100 min-h-screen p-4 border-r border-gray-200">
+          {(selectedChannel || selectedCategory) && (
+            <div className="mb-4 p-2 bg-blue-50 rounded border border-blue-100">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-blue-800">
+                  {videos.length} video{videos.length !== 1 ? 's' : ''} found
+                </span>
+                <button 
+                  onClick={() => {
+                    setSelectedChannel(null);
+                    setSelectedCategory(null);
+                    setVideos(allVideos);
+                  }}
+                  className="text-xs text-blue-700 hover:text-blue-900"
+                >
+                  Clear filters
+                </button>
+              </div>
+              {selectedChannel && (
+                <div className="text-xs text-blue-700 mt-1">
+                  Channel: {channels.find(c => c.id === selectedChannel)?.name}
+                </div>
+              )}
+              {selectedCategory && (
+                <div className="text-xs text-blue-700 mt-1">
+                  Category: {selectedCategory}
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="mb-6">
             <h3 className="font-semibold text-lg mb-2">Digests</h3>
             <ul className="space-y-2">
@@ -132,9 +201,10 @@ export default function DigestsPage() {
               {channels.map((channel) => (
                 <li 
                   key={channel.id} 
-                  className="cursor-pointer p-2 rounded hover:bg-gray-200"
+                  className={`cursor-pointer p-2 rounded ${selectedChannel === channel.id ? 'bg-blue-100' : 'hover:bg-gray-200'}`}
+                  onClick={() => handleChannelSelect(channel.id, channel.name)}
                 >
-                  <div className="text-sm font-medium truncate">{channel.title}</div>
+                  <div className="text-sm font-medium truncate">{channel.name}</div>
                 </li>
               ))}
               {channels.length === 0 && (
@@ -149,7 +219,8 @@ export default function DigestsPage() {
               {categories.map((category, index) => (
                 <li 
                   key={index} 
-                  className="cursor-pointer p-2 rounded hover:bg-gray-200"
+                  className={`cursor-pointer p-2 rounded ${selectedCategory === category ? 'bg-blue-100' : 'hover:bg-gray-200'}`}
+                  onClick={() => handleCategorySelect(category)}
                 >
                   <div className="text-sm font-medium truncate">{category}</div>
                 </li>
@@ -211,13 +282,15 @@ export default function DigestsPage() {
                 </div>
                 <h2 className="text-xl font-bold mb-2">{selectedVideo.title}</h2>
                 <div className="flex items-center text-gray-600 mb-2">
-                  <span className="mr-4">{selectedVideo.channel_title || 'Unknown channel'}</span>
-                  {selectedVideo.view_count && (
+                  {selectedVideo.channel_title ? (
+                    <span className="mr-4">{selectedVideo.channel_title}</span>
+                  ) : null}
+                  {selectedVideo.view_count ? (
                     <span className="mr-4">{selectedVideo.view_count.toLocaleString()} views</span>
-                  )}
-                  {selectedVideo.upload_date && (
+                  ) : null}
+                  {selectedVideo.upload_date && selectedVideo.upload_date !== "null" ? (
                     <span>Uploaded: {new Date(selectedVideo.upload_date).toLocaleDateString()}</span>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -269,32 +342,18 @@ export default function DigestsPage() {
               {videos.length > 0 ? (
                 <div>
                   <p className="text-gray-600 mb-6">
-                    You have {videos.length} video digest{videos.length !== 1 ? 's' : ''} available. 
                     Select a video from the sidebar to view its digest.
                   </p>
-                  <div className="flex flex-wrap justify-center gap-4 mt-6">
-                    {videos.slice(0, 3).map(video => (
-                      <div 
-                        key={video.id}
-                        className="w-64 cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => handleVideoSelect(video)}
-                      >
-                        <div className="aspect-video bg-gray-200 mb-2 rounded overflow-hidden">
-                          {video.thumbnail_url ? (
-                            <img 
-                              src={video.thumbnail_url} 
-                              alt={video.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-gray-500">No thumbnail</span>
-                            </div>
-                          )}
-                        </div>
-                        <h3 className="font-medium text-sm truncate">{video.title}</h3>
-                      </div>
-                    ))}
+                  <div className="flex justify-center mt-8">
+                    <div className="max-w-md p-6 bg-blue-50 rounded-lg border border-blue-100">
+                      <h3 className="text-lg font-medium text-blue-800 mb-2">How to use Digests</h3>
+                      <ul className="text-sm text-blue-700 list-disc pl-5 space-y-2">
+                        <li>Browse your digests in the sidebar</li>
+                        <li>Click on any digest to view its summary</li>
+                        <li>Add new digests using the YouTube URL field above</li>
+                        <li>Filter by channels or categories using the sidebar</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               ) : (
