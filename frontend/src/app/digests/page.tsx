@@ -132,6 +132,32 @@ export default function DigestsPage() {
     }
   };
 
+  // Format date string safely
+  const formatDate = (dateStr: string | undefined): string => {
+    if (!dateStr || dateStr === "null" || dateStr === "Invalid Date") return "Unknown";
+    
+    // Try different date formats
+    try {
+      // Check if it's a YYYYMMDD format
+      if (/^\d{8}$/.test(dateStr)) {
+        const year = dateStr.substring(0, 4);
+        const month = dateStr.substring(4, 6);
+        const day = dateStr.substring(6, 8);
+        return new Date(`${year}-${month}-${day}`).toLocaleDateString();
+      }
+      
+      // Try standard date parsing
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString();
+      }
+      
+      return "Unknown";
+    } catch (e) {
+      return "Unknown";
+    }
+  };
+
   // Simple markdown renderer using HTML
   const renderMarkdown = (text: string) => {
     // Replace headers
@@ -291,84 +317,73 @@ export default function DigestsPage() {
 
           {selectedVideo ? (
             <>
-              {/* Video Display */}
-              <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
-                <div className="flex flex-col md:flex-row gap-4">
-                  {/* Thumbnail - smaller and to the side on larger screens */}
-                  <div className="md:w-1/3">
-                    <div className="aspect-video bg-gray-200 rounded overflow-hidden">
-                      {selectedVideo.thumbnail_url ? (
+              {/* Video Display - Redesigned for better balance */}
+              <div className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
+                {/* Video header with thumbnail background and overlay */}
+                <div className="relative">
+                  {/* Background thumbnail with overlay */}
+                  <div className="relative h-48 md:h-64 overflow-hidden">
+                    {selectedVideo.thumbnail_url ? (
+                      <>
                         <img 
                           src={selectedVideo.thumbnail_url} 
-                          alt={selectedVideo.title} 
+                          alt={selectedVideo.title}
                           className="w-full h-full object-cover"
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-gray-500">No thumbnail available</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Video info - takes more space */}
-                  <div className="md:w-2/3">
-                    <h2 className="text-xl font-bold mb-2">{selectedVideo.title}</h2>
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/80"></div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-gray-800"></div>
+                    )}
                     
-                    {/* Video metadata in a consistent format */}
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4">
-                      {/* Channel */}
-                      <div className="col-span-2 md:col-span-1">
-                        <p className="text-sm text-gray-500">Channel</p>
-                        <p>
-                          {selectedVideo.channel_title || 
-                            (channels.find(c => c.id === selectedVideo.channel_id)?.name) || 
-                            'Unknown channel'}
-                        </p>
-                      </div>
-                      
-                      {/* Upload Date */}
-                      {selectedVideo.upload_date && selectedVideo.upload_date !== "null" && (
-                        <div>
-                          <p className="text-sm text-gray-500">Uploaded</p>
-                          <p>{new Date(selectedVideo.upload_date).toLocaleDateString()}</p>
-                        </div>
-                      )}
-                      
-                      {/* Views */}
-                      {selectedVideo.view_count !== undefined && (
-                        <div>
-                          <p className="text-sm text-gray-500">Views</p>
-                          <p>{selectedVideo.view_count.toLocaleString()}</p>
-                        </div>
-                      )}
-                      
-                      {/* Duration */}
-                      {selectedVideo.duration && (
-                        <div>
-                          <p className="text-sm text-gray-500">Duration</p>
-                          <p>{Math.floor(selectedVideo.duration / 60)}:{(selectedVideo.duration % 60).toString().padStart(2, '0')}</p>
-                        </div>
-                      )}
-                      
-                      {/* Likes */}
-                      {selectedVideo.like_count !== undefined && (
-                        <div>
-                          <p className="text-sm text-gray-500">Likes</p>
-                          <p>{selectedVideo.like_count.toLocaleString()}</p>
-                        </div>
-                      )}
-                      
-                      {/* Categories */}
-                      {selectedVideo.categories && selectedVideo.categories.length > 0 && (
-                        <div className="col-span-2">
-                          <p className="text-sm text-gray-500">Categories</p>
-                          <p>{selectedVideo.categories.join(', ')}</p>
-                        </div>
-                      )}
+                    {/* Video title and channel overlaid on the thumbnail */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                      <h2 className="text-xl md:text-2xl font-bold mb-2 drop-shadow-md">{selectedVideo.title}</h2>
+                      <p className="text-sm md:text-base">
+                        {selectedVideo.channel_title || 
+                          (channels.find(c => c.id === selectedVideo.channel_id)?.name) || 
+                          'Unknown channel'}
+                      </p>
                     </div>
                   </div>
                 </div>
+                
+                {/* Video metadata in a clean grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-1 gap-y-2 p-4 bg-white text-center">
+                  {/* Views */}
+                  <div className="px-3 py-2">
+                    <p className="text-gray-500 text-sm">Views</p>
+                    <p className="font-medium">{selectedVideo.view_count?.toLocaleString() || 'Unknown'}</p>
+                  </div>
+                  
+                  {/* Upload Date */}
+                  <div className="px-3 py-2">
+                    <p className="text-gray-500 text-sm">Uploaded</p>
+                    <p className="font-medium">{formatDate(selectedVideo.upload_date)}</p>
+                  </div>
+                  
+                  {/* Duration */}
+                  <div className="px-3 py-2">
+                    <p className="text-gray-500 text-sm">Duration</p>
+                    <p className="font-medium">{selectedVideo.duration ? 
+                      `${Math.floor(selectedVideo.duration / 60)}:${(selectedVideo.duration % 60).toString().padStart(2, '0')}` : 
+                      'Unknown'}</p>
+                  </div>
+                  
+                  {/* Likes */}
+                  <div className="px-3 py-2">
+                    <p className="text-gray-500 text-sm">Likes</p>
+                    <p className="font-medium">{selectedVideo.like_count?.toLocaleString() || 'Unknown'}</p>
+                  </div>
+                </div>
+                
+                {/* Categories if available */}
+                {selectedVideo.categories && selectedVideo.categories.length > 0 && (
+                  <div className="px-4 py-2 border-t border-gray-100 bg-gray-50">
+                    <p className="text-sm text-gray-500 mb-1">Categories</p>
+                    <p>{selectedVideo.categories.join(', ')}</p>
+                  </div>
+                )}
               </div>
 
               {/* Digest Content - Now more prominent */}
