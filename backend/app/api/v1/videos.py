@@ -462,7 +462,6 @@ async def generate_summary(
             
             logger.info(f"[Background Task] Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
             last_successful_stage = "transcript_extraction"
-            transcript = new_transcript
         else:
             logger.info(f"[Background Task] Using existing transcript for video ID: {video_id}")
             video.processing_status = ProcessingStatus.SUMMARIZING
