@@ -77,12 +77,6 @@ class VideoResponse(BaseModel):
     processing_status: str = Field(..., description="Current processing status")
     last_processed: Optional[datetime] = None
     
-    # Transcript info
-    transcript_source: Optional[str] = None
-    
-    # OpenAI usage
-    openai_usage: Optional[Dict[str, Any]] = None
-    
     # Timestamps
     upload_date: Optional[str] = None
     created_at: datetime
@@ -138,7 +132,7 @@ async def process_video_background(video_id: int):
                 db.commit()
                 
                 # Update video with transcript source
-                video.transcript_source = meta.get('source')
+                # video.transcript_source = meta.get('source')  # This field doesn't exist in the Video model
                 video.processing_status = ProcessingStatus.SUMMARIZING
                 db.commit()
                 
@@ -157,7 +151,7 @@ async def process_video_background(video_id: int):
             
             logger.info(f"[Background Task] Summary generated for video ID: {video_id}")
             video.summary = result["summary"]
-            video.openai_usage = result["usage"]
+            # video.openai_usage = result["usage"]  # This field doesn't exist in the Video model
             video.processed = True
             video.processing_status = ProcessingStatus.COMPLETED
             video.last_processed = datetime.utcnow()
@@ -462,12 +456,18 @@ async def generate_summary(
             db.refresh(transcript)
             
             # Update video with transcript source
-            video.transcript_source = meta.get('source')
-        
-        # Update status to processing
-        video.processing_status = ProcessingStatus.PROCESSING
-        db.commit()
-        
+            # video.transcript_source = meta.get('source')  # This field doesn't exist in the Video model
+            video.processing_status = ProcessingStatus.SUMMARIZING
+            db.commit()
+            
+            logger.info(f"[Background Task] Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
+            last_successful_stage = "transcript_extraction"
+            transcript = new_transcript
+        else:
+            logger.info(f"[Background Task] Using existing transcript for video ID: {video_id}")
+            video.processing_status = ProcessingStatus.SUMMARIZING
+            db.commit()
+            
         # Add background task for summary generation
         background_tasks.add_task(process_video_background, video_id)
         
