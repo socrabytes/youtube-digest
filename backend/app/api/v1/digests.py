@@ -10,6 +10,7 @@ from app.models.digest import Digest as DigestModel
 from app.models.video import Video as VideoModel
 from app.models.user import User as UserModel
 from app.models.llm import LLM as LLMModel
+from app.models.transcript import Transcript as TranscriptModel
 from app.services.summarizers.openai_summarizer import OpenAISummarizer, SummaryGenerationError
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,12 @@ async def generate_digest_background(digest_id: int):
             return
             
         # Get the transcript
-        if not video.transcript:
+        transcript = db.query(TranscriptModel).filter(
+            TranscriptModel.video_id == video.id,
+            TranscriptModel.status == "PROCESSED"
+        ).first()
+        
+        if not transcript:
             logger.error(f"No transcript available for video {video.id}")
             digest.extra_data = {"error": "No transcript available"}
             db.commit()
@@ -77,7 +83,7 @@ async def generate_digest_background(digest_id: int):
             
             # Generate the digest
             summarizer = OpenAISummarizer()
-            result = summarizer.generate(video.transcript)
+            result = summarizer.generate(transcript.content)
             
             # Update the digest
             digest.digest = result["summary"]
