@@ -236,6 +236,25 @@ async def create_video_digest(
             llm = db.query(LLMModel).filter(LLMModel.id == digest_create.llm_id).first()
             if llm is None:
                 raise HTTPException(status_code=404, detail="LLM not found")
+        else:
+            # Get the default LLM if not specified
+            default_llm = db.query(LLMModel).first()
+            if default_llm:
+                digest_create.llm_id = default_llm.id
+            else:
+                # Create a default LLM if none exists
+                default_llm = LLMModel(
+                    name="GPT-4",
+                    provider="OpenAI",
+                    model_id="gpt-4-0125-preview",
+                    max_tokens=4000,
+                    temperature=0.7,
+                    is_active=True
+                )
+                db.add(default_llm)
+                db.commit()
+                db.refresh(default_llm)
+                digest_create.llm_id = default_llm.id
         
         # Create digest
         digest = DigestModel(
