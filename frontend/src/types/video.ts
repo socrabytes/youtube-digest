@@ -4,8 +4,10 @@ export interface Video {
   id: number;
   youtube_id: string;
   url: string;
+  webpage_url?: string;
   title: string;
   thumbnail_url?: string;
+  thumbnail?: string;
   duration: number;
   view_count?: number;
   subscriber_count?: number;
@@ -20,6 +22,7 @@ export interface Video {
   transcript_source?: 'manual' | 'auto';
   summary?: string;
   processing_status: ProcessingStatus;
+  has_digest?: boolean;
   openai_usage?: {
     prompt_tokens: number;
     completion_tokens: number;

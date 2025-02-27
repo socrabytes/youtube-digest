@@ -35,7 +35,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels =
         <div 
           key={video.id} 
           className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-          onClick={() => onVideoSelect(video)}
+          onClick={() => typeof onVideoSelect === 'function' ? onVideoSelect(video) : console.error('onVideoSelect is not a function')}
           aria-label={`Select video: ${video.title}`}
         >
           {/* Thumbnail with duration overlay */}
@@ -64,6 +64,13 @@ const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels =
               <div className="absolute top-2 right-2 bg-indigo-600 text-white text-xs px-2 py-1 rounded-md flex items-center">
                 <DocumentTextIcon className="h-3 w-3 mr-1" />
                 Digest
+              </div>
+            )}
+            
+            {/* Digest indicator */}
+            {video.has_digest && (
+              <div className="absolute top-2 left-2 bg-green-600 rounded-full p-1 text-white shadow-sm" title="Has digest">
+                <DocumentTextIcon className="h-4 w-4" />
               </div>
             )}
           </div>

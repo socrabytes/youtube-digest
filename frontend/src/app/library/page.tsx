@@ -101,8 +101,21 @@ export default function LibraryPage() {
           api.getChannels()
         ]);
         
-        setVideos(videosData);
-        setFilteredVideos(videosData);
+        // Check videos for digests
+        const videosWithDigests = await Promise.all(
+          videosData.map(async (video) => {
+            try {
+              const digest = await api.getVideoDigest(video.id);
+              return { ...video, has_digest: !!digest };
+            } catch (err) {
+              console.error(`Error checking digest for video ${video.id}:`, err);
+              return { ...video, has_digest: false };
+            }
+          })
+        );
+        
+        setVideos(videosWithDigests);
+        setFilteredVideos(videosWithDigests);
         setChannels(channelsData);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -212,7 +225,7 @@ export default function LibraryPage() {
     } else {
       // If there's no digest, use a simple confirm dialog
       if (confirm("This video doesn't have a digest yet. Would you like to create one?")) {
-        router.push(`/digests?url=${encodeURIComponent(video.url || '')}`);
+        router.push(`/digests?url=${encodeURIComponent(video.url || video.webpage_url || '')}`);
       }
     }
   };

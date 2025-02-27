@@ -34,7 +34,7 @@ const VideoList: React.FC<VideoListProps> = ({ videos, onVideoSelect, channels =
       {videos.map((video) => (
         <button
           key={video.id}
-          onClick={() => onVideoSelect(video)}
+          onClick={() => typeof onVideoSelect === 'function' ? onVideoSelect(video) : console.error('onVideoSelect is not a function')}
           className="w-full text-left bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow flex space-x-4 items-start"
         >
           {/* Thumbnail with duration */}
