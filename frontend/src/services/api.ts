@@ -47,7 +47,7 @@ export const api = {
     return digests.length > 0 ? digests[0] : null;
   },
 
-  async createDigest(videoUrl: string): Promise<{ id: number }> {
+  async createDigest(videoUrl: string): Promise<any> {
     // First, create or get the video
     const videoResponse = await fetch(`${API_BASE_URL}${API_VERSION}/videos/`, {
       method: 'POST',
@@ -78,7 +78,8 @@ export const api = {
       throw new Error(errorData.detail || 'Failed to create digest');
     }
     
-    return digestResponse.json();
+    const digest = await digestResponse.json();
+    return { ...digest, video_id: video.id };
   },
 
   async getCategories(): Promise<string[]> {
