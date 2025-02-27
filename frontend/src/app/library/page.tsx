@@ -6,6 +6,15 @@ import * as api from '@/services/api';
 import type { Video } from '@/types/video';
 import VideoGrid from '@/components/video/VideoGrid';
 import VideoList from '@/components/video/VideoList';
+import { 
+  ViewGridIcon, 
+  ViewListIcon, 
+  SearchIcon,
+  FilterIcon,
+  CollectionIcon,
+  AdjustmentsIcon,
+  InformationCircleIcon
+} from '@heroicons/react/outline';
 
 export default function LibraryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -222,9 +231,7 @@ export default function LibraryPage() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
-            <svg className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-            </svg>
+            <SearchIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
           
           {/* Right Controls */}
@@ -249,18 +256,14 @@ export default function LibraryPage() {
                 className={`p-1.5 rounded ${view === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
                 aria-label="Grid view"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
+                <ViewGridIcon className="h-5 w-5" />
               </button>
               <button
                 onClick={() => toggleView('list')}
                 className={`p-1.5 rounded ${view === 'list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
                 aria-label="List view"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
+                <ViewListIcon className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -271,11 +274,17 @@ export default function LibraryPage() {
           {/* Filters Sidebar */}
           <div className="lg:w-1/4">
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="font-medium text-lg mb-4">Filters</h2>
+              <h2 className="font-medium text-lg mb-4 flex items-center">
+                <FilterIcon className="h-5 w-5 mr-2 text-indigo-600" />
+                Filters
+              </h2>
 
               {/* Duration Filter */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Duration</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <AdjustmentsIcon className="h-4 w-4 mr-1 text-gray-500" />
+                  Duration
+                </h3>
                 <div className="space-y-2">
                   {durations.map(duration => (
                     <div key={duration.value} className="flex items-center">
@@ -298,7 +307,10 @@ export default function LibraryPage() {
               {/* Categories Filter */}
               {categories.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Categories</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <CollectionIcon className="h-4 w-4 mr-1 text-gray-500" />
+                    Categories
+                  </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {categories.map(category => (
                       <div key={category} className="flex items-center">
@@ -338,9 +350,7 @@ export default function LibraryPage() {
           <div className="lg:w-3/4">
             {filteredVideos.length === 0 ? (
               <div className="bg-white shadow rounded-lg p-8 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
+                <InformationCircleIcon className="mx-auto h-12 w-12 text-indigo-400" />
                 <h3 className="mt-4 text-lg font-medium text-gray-900">No videos found</h3>
                 <p className="mt-2 text-gray-500">
                   Try adjusting your search or filters to find what you're looking for.
