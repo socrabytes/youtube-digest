@@ -193,11 +193,9 @@ async def create_digest(
                 # Create a default LLM if none exists
                 default_llm = LLMModel(
                     name="GPT-4",
-                    provider="OpenAI",
                     model_id="gpt-4-0125-preview",
-                    max_tokens=4000,
-                    temperature=0.7,
-                    is_active=True
+                    base_cost_per_token=0.00001,
+                    description="OpenAI GPT-4 model"
                 )
                 db.add(default_llm)
                 db.commit()
@@ -269,11 +267,9 @@ async def create_video_digest(
                 # Create a default LLM if none exists
                 default_llm = LLMModel(
                     name="GPT-4",
-                    provider="OpenAI",
                     model_id="gpt-4-0125-preview",
-                    max_tokens=4000,
-                    temperature=0.7,
-                    is_active=True
+                    base_cost_per_token=0.00001,
+                    description="OpenAI GPT-4 model"
                 )
                 db.add(default_llm)
                 db.commit()
