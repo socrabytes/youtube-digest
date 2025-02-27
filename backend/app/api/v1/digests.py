@@ -169,6 +169,26 @@ async def create_digest(
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Get the default LLM if not specified
+        if not digest.llm_id:
+            default_llm = db.query(LLMModel).first()
+            if default_llm:
+                digest.llm_id = default_llm.id
+            else:
+                # Create a default LLM if none exists
+                default_llm = LLMModel(
+                    name="GPT-4",
+                    provider="OpenAI",
+                    model_id="gpt-4-0125-preview",
+                    max_tokens=4000,
+                    temperature=0.7,
+                    is_active=True
+                )
+                db.add(default_llm)
+                db.commit()
+                db.refresh(default_llm)
+                digest.llm_id = default_llm.id
+        
         # Create new digest
         db_digest = DigestModel(
             video_id=digest.video_id,
