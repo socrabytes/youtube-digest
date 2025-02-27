@@ -1,20 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import * as api from '@/services/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { api } from '@/services/api';
 import type { Video } from '@/types/video';
 import VideoGrid from '@/components/video/VideoGrid';
 import VideoList from '@/components/video/VideoList';
-import { 
-  ViewGridIcon, 
-  ViewListIcon, 
-  SearchIcon,
+import {
   FilterIcon,
+  ViewGridIcon,
+  ViewListIcon,
+  SearchIcon,
+  XIcon,
+  ChevronDownIcon,
+  ClockIcon,
   CollectionIcon,
   AdjustmentsIcon,
-  InformationCircleIcon,
-  ClockIcon
+  InformationCircleIcon
 } from '@heroicons/react/outline';
 import MainLayout from '@/components/layout/MainLayout';
 
@@ -181,8 +183,16 @@ export default function LibraryPage() {
 
   // Handle video selection
   const handleVideoSelect = (video: Video) => {
-    // Navigate to the digest page with the video ID
-    router.push(`/digests?video=${video.id}`);
+    // Navigate to the digest page with the video ID as part of the URL fragment
+    // This will allow the digests page to select the specific video
+    if (video.has_digest) {
+      router.push(`/digests?video=${video.id}`);
+    } else {
+      // If there's no digest, use a simple confirm dialog
+      if (confirm("This video doesn't have a digest yet. Would you like to create one?")) {
+        router.push(`/digests?url=${encodeURIComponent(video.url || '')}`);
+      }
+    }
   };
 
   if (loading) {

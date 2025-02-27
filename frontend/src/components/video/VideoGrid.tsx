@@ -16,6 +16,19 @@ const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels =
     return channel?.thumbnail || null;
   };
 
+  const getChannelName = (video: Video) => {
+    // First try to use the channel_title from the video
+    if (video.channel_title) return video.channel_title;
+    
+    // If not available, try to get it from the channels array
+    if (video.channel_id && channels.length > 0) {
+      const channel = channels.find(c => c.id === video.channel_id);
+      if (channel) return channel.name;
+    }
+    
+    return 'Unknown channel';
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {videos.map((video) => (
@@ -63,14 +76,14 @@ const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels =
               {getChannelImage(video.channel_id) ? (
                 <img 
                   src={getChannelImage(video.channel_id)} 
-                  alt={video.channel_title || 'Channel'} 
+                  alt={getChannelName(video)} 
                   className="w-5 h-5 rounded-full mr-2"
                 />
               ) : (
                 <div className="w-5 h-5 bg-gray-200 rounded-full mr-2"></div>
               )}
               <span className="text-sm text-gray-700 truncate">
-                {video.channel_title || 'Unknown channel'}
+                {getChannelName(video)}
               </span>
             </div>
             

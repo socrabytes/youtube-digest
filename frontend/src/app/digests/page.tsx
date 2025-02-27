@@ -1,12 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { api } from '@/services/api';
 import type { Video, Channel } from '@/types/video';
 
 export default function DigestsPage() {
+  const searchParams = useSearchParams();
+  const videoIdParam = searchParams.get('video');
+  const urlParam = searchParams.get('url');
+  
   const [isLoading, setIsLoading] = useState(true);
   const [videos, setVideos] = useState<Video[]>([]);
   const [allVideos, setAllVideos] = useState<Video[]>([]);
@@ -32,9 +37,6 @@ export default function DigestsPage() {
         const data = await api.fetchVideos({ sortBy: 'date', timeRange: 'all', hasDigest: true });
         setVideos(data);
         setAllVideos(data);
-        
-        // Don't automatically select a video on initial load
-        // This addresses feedback #3
       } catch (err) {
         console.error('Error fetching videos:', err);
         setError('Failed to load videos with digests');
@@ -67,6 +69,26 @@ export default function DigestsPage() {
     fetchCategories();
     fetchChannels();
   }, []);
+
+  // This useEffect handles URL parameter changes
+  useEffect(() => {
+    if (videoIdParam && videos.length > 0) {
+      const videoId = parseInt(videoIdParam);
+      const selectedVid = videos.find(v => v.id === videoId);
+      if (selectedVid) {
+        setSelectedVideo(selectedVid);
+      }
+    }
+  }, [videoIdParam, videos]);
+
+  useEffect(() => {
+    // If URL parameter exists, try to create a digest
+    if (urlParam) {
+      setUrl(urlParam);
+      // Don't automatically submit to create a digest
+      // Just populate the URL field for the user
+    }
+  }, [urlParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
