@@ -268,8 +268,7 @@ async def create_video(
                 upload_date=video_info.get('upload_date'),
                 processed=False,
                 error_message=None,
-                processing_status=ProcessingStatus.PENDING,
-                transcript_source=None
+                processing_status=ProcessingStatus.PENDING
             )
             db.add(db_video)
             
