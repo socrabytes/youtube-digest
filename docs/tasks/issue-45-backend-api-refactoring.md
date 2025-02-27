@@ -60,6 +60,7 @@ This task involves updating the FastAPI backend to use the new normalized databa
 - Implemented field mapping strategy for API compatibility without database migrations
 - Updated test fixtures to use correct enum values and required fields
 - Ensured all tests pass in the Docker test environment
+- Organized test utilities in appropriate directories (tests/utils and tests/scripts)
 
 ### In Progress
 - Adding missing endpoints
