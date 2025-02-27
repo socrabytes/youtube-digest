@@ -98,3 +98,32 @@ export const api = {
     return response.json();
   }
 };
+
+// Export standalone functions for easier imports
+export async function getVideos(): Promise<Video[]> {
+  const response = await fetch(`${API_BASE_URL}${API_VERSION}/videos/`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch videos');
+  }
+  return response.json();
+}
+
+export async function getChannels(): Promise<any[]> {
+  const response = await fetch(`${API_BASE_URL}${API_VERSION}/channels/`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch channels');
+  }
+  return response.json();
+}
+
+export async function getVideo(id: number): Promise<Video> {
+  const response = await fetch(`${API_BASE_URL}${API_VERSION}/videos/${id}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch video');
+  }
+  return response.json();
+}
+
+export async function createDigest(url: string): Promise<any> {
+  return api.createDigest(url);
+}
