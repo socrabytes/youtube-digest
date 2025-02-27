@@ -54,9 +54,9 @@ Implementing caching was part of the original user story but was postponed. This
 - **Full-Text Search:**  
 Consider adding full-text search capabilities to the TRANSCRIPTS table for improved searchability, which could enhance user experience.
 - **Advanced Analytics:**  
-Leverage fields like `generated_at`, `fetched_at`, and `processed_at` for time-based analytics. This can help quantify the "time saved" metric by tracking user engagement and interactions with various digest types.
-- **Integration of Multiple Digest Variants and LLM Providers:**  
-As new digest types and additional LLM providers are integrated, adjustments to the DIGESTS table and related API endpoints may be required to support nuanced output and user choice.
+Leverage fields like `generated_at`, `fetched_at`, and `processed_at` for time-based analytics. This can help quantify the "time saved" metric by tracking user engagement.
+- **Frontend Integration:**
+The frontend needs to be updated to work with the new API structure. This includes adapting data fetching, modifying UI components, and adding new features enabled by the enhanced schema.
 
 ## Related Documentation
 - [yt-dlp output analysis](/backend/scripts/analyze_ytdlp_output.py)
@@ -70,15 +70,20 @@ All database-related tasks are complete. The schema is now properly normalized w
 - Improved performance considerations (indexes)
 
 ## Next Steps
-1. Backend API Refactoring 
-   - Update FastAPI endpoints to use new models
-   - Create/update Pydantic schemas
-   - Implement CRUD operations
-   - Add validation using new constraints
-   - Update error handling
+1. ~~Backend API Refactoring~~ ✅ *Completed in Issue #45*
+   - ~~Update FastAPI endpoints to use new models~~
+   - ~~Create/update Pydantic schemas~~
+   - ~~Implement CRUD operations~~
+   - ~~Add validation using new constraints~~
+   - ~~Update error handling~~
 
 2. Frontend Updates 
    - Adapt to new API structure
    - Update data fetching
    - Modify UI components
    - Add new features enabled by schema
+
+3. Additional Backend Enhancements
+   - Implement caching (Redis/Memcached) for frequently accessed data
+   - Add full-text search capabilities for transcripts
+   - Develop analytics features using timestamp data
