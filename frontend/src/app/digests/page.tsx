@@ -21,6 +21,8 @@ export default function DigestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [channelsOpen, setChannelsOpen] = useState(false);
   const [selectedChannels, setSelectedChannels] = useState<number[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const videosPerPage = 10;
 
   useEffect(() => {
     // Fetch videos with digests
@@ -184,6 +186,12 @@ export default function DigestsPage() {
     (video.categories && video.categories.some(category => category.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
+  // Get current videos for pagination
+  const indexOfLastVideo = currentPage * videosPerPage;
+  const indexOfFirstVideo = indexOfLastVideo - videosPerPage;
+  const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
+  const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -207,7 +215,7 @@ export default function DigestsPage() {
               <input
                 type="text"
                 placeholder="Search digests..."
-                className="w-full pl-3 pr-10 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-3 pr-10 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -225,18 +233,18 @@ export default function DigestsPage() {
               <div className="p-4 text-center text-sm text-gray-500">
                 <div className="animate-pulse">Loading videos...</div>
               </div>
-            ) : filteredVideos.length === 0 ? (
+            ) : currentVideos.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
                 No videos found. Add one using the URL field above.
               </div>
             ) : (
               <div>
-                {filteredVideos.map((video) => (
+                {currentVideos.map((video) => (
                   <button
                     key={video.id}
                     onClick={() => handleVideoSelect(video)}
                     className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors
-                      ${selectedVideo?.id === video.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
+                      ${selectedVideo?.id === video.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : ''}`}
                   >
                     <div className="flex items-start space-x-2">
                       {/* Video thumbnail */}
@@ -265,6 +273,41 @@ export default function DigestsPage() {
                     </div>
                   </button>
                 ))}
+                
+                {/* Pagination Controls */}
+                {filteredVideos.length > videosPerPage && (
+                  <div className="p-3 flex justify-between items-center border-t border-gray-100">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className={`px-2 py-1 rounded text-sm ${
+                        currentPage === 1 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-indigo-600 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <span className="sr-only">Previous</span>
+                      ←
+                    </button>
+                    
+                    <span className="text-sm text-gray-500">
+                      {currentPage} of {totalPages}
+                    </span>
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className={`px-2 py-1 rounded text-sm ${
+                        currentPage === totalPages 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-indigo-600 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <span className="sr-only">Next</span>
+                      →
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -294,7 +337,7 @@ export default function DigestsPage() {
                     <input
                       type="checkbox"
                       id={`channel-${channel.id}`}
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                       checked={selectedChannels.includes(channel.id)}
                       onChange={() => handleChannelSelect(channel.id)}
                     />
@@ -321,12 +364,12 @@ export default function DigestsPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 disabled={isSubmitting}
               />
               <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors duration-200 disabled:bg-blue-400"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-colors duration-200 disabled:bg-indigo-400"
                 disabled={!url || isSubmitting}
               >
                 {isSubmitting ? (
@@ -357,10 +400,10 @@ export default function DigestsPage() {
                           alt={selectedVideo.title}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/80"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-indigo-900/90"></div>
                       </>
                     ) : (
-                      <div className="w-full h-full bg-gray-800"></div>
+                      <div className="w-full h-full bg-indigo-900"></div>
                     )}
                     
                     {/* Video title and channel overlaid on the thumbnail */}
@@ -415,7 +458,7 @@ export default function DigestsPage() {
 
               {/* Digest Content - Now more prominent */}
               <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="font-semibold text-xl mb-4 text-blue-800">Digest</h3>
+                <h3 className="font-semibold text-xl mb-4 text-indigo-800">Digest</h3>
                 {selectedVideo.summary ? (
                   <div className="prose max-w-none" dangerouslySetInnerHTML={renderMarkdown(selectedVideo.summary)} />
                 ) : (
@@ -433,28 +476,28 @@ export default function DigestsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-                  <h3 className="font-semibold text-lg mb-3 text-blue-600">Getting Started</h3>
+                  <h3 className="font-semibold text-lg mb-3 text-indigo-600">Getting Started</h3>
                   <ul className="space-y-2 text-gray-700">
                     <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">1</span>
+                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">1</span>
                       Browse your digests in the sidebar
                     </li>
                     <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">2</span>
+                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">2</span>
                       Click on any digest to view its summary
                     </li>
                   </ul>
                 </div>
                 
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-                  <h3 className="font-semibold text-lg mb-3 text-blue-600">Add New Content</h3>
+                  <h3 className="font-semibold text-lg mb-3 text-indigo-600">Add New Content</h3>
                   <ul className="space-y-2 text-gray-700">
                     <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">1</span>
+                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">1</span>
                       Add new digests using the YouTube URL field above
                     </li>
                     <li className="flex items-start">
-                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">2</span>
+                      <span className="inline-flex items-center justify-center mr-2 bg-indigo-100 rounded-full w-5 h-5 text-xs text-indigo-600">2</span>
                       Filter by channels or categories using the sidebar
                     </li>
                   </ul>
