@@ -97,7 +97,7 @@ export default function LibraryPage() {
       setLoading(true);
       try {
         const [videosData, channelsData] = await Promise.all([
-          api.getVideos(),
+          api.fetchVideos({}),
           api.getChannels()
         ]);
         
@@ -218,6 +218,7 @@ export default function LibraryPage() {
   };
 
   // Keyboard shortcuts
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   useKeyboardShortcut('g', () => {
     setView('grid');
   });
@@ -227,7 +228,7 @@ export default function LibraryPage() {
   });
   
   useKeyboardShortcut('f', () => {
-    // setIsFilterMenuOpen(!isFilterMenuOpen);
+    setIsFilterMenuOpen(!isFilterMenuOpen);
   });
 
   useKeyboardShortcut('s', () => {

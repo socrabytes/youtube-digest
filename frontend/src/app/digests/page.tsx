@@ -98,6 +98,9 @@ export default function DigestsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!url) return;
+    
     setError(null);
     setIsSubmitting(true);
 
@@ -219,32 +222,6 @@ export default function DigestsPage() {
   const indexOfFirstVideo = indexOfLastVideo - videosPerPage;
   const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
   const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
-
-  const handleUrlSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url || isSubmitting) return;
-    
-    setIsSubmitting(true);
-    setError('');
-    
-    try {
-      // Make API call to generate digest
-      const response = await api.createDigest(url);
-      
-      // Set the newly created video as selected
-      if (response) {
-        const newVideoData = await api.fetchVideos({ url });
-        if (newVideoData.length > 0) {
-          setVideos(prev => [...prev, ...newVideoData.filter(v => !prev.some(p => p.id === v.id))]);
-          setSelectedVideo(newVideoData[0]);
-        }
-      }
-    } catch (err) {
-      setError(`Failed to generate digest: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   // Keyboard shortcuts
   useKeyboardShortcut('b', () => {
@@ -451,7 +428,7 @@ export default function DigestsPage() {
         <div className="flex-1 p-6">
           {/* URL Input */}
           <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
-            <form onSubmit={handleUrlSubmit} className="flex flex-col sm:flex-row gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
               <input
                 type="text"
                 value={url}
@@ -587,18 +564,18 @@ export default function DigestsPage() {
             </>
           )}
         </div>
+        
+        {/* Keyboard Shortcuts Help */}
+        <KeyboardShortcutsHelp
+          shortcuts={[
+            { key: '?', description: 'Show keyboard shortcuts', category: 'General' },
+            { key: 'b', description: 'Back to library', category: 'Navigation' },
+            { key: 'n', description: 'Focus URL input', category: 'Content' },
+            { key: '↑', description: 'Previous video', category: 'Navigation' },
+            { key: '↓', description: 'Next video', category: 'Navigation' },
+          ]}
+        />
       </div>
-      
-      {/* Keyboard Shortcuts Help */}
-      <KeyboardShortcutsHelp
-        shortcuts={[
-          { key: '?', description: 'Show keyboard shortcuts', category: 'General' },
-          { key: 'b', description: 'Back to library', category: 'Navigation' },
-          { key: 'n', description: 'Focus URL input', category: 'Content' },
-          { key: '↑', description: 'Previous video', category: 'Navigation' },
-          { key: '↓', description: 'Next video', category: 'Navigation' },
-        ]}
-      />
     </MainLayout>
   );
 }
