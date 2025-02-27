@@ -267,71 +267,84 @@ export default function DigestsPage() {
             <>
               {/* Video Display */}
               <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
-                <div className="aspect-video bg-gray-200 mb-4 rounded overflow-hidden">
-                  {selectedVideo.thumbnail_url ? (
-                    <img 
-                      src={selectedVideo.thumbnail_url} 
-                      alt={selectedVideo.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-gray-500">No thumbnail available</span>
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Thumbnail - smaller and to the side on larger screens */}
+                  <div className="md:w-1/3">
+                    <div className="aspect-video bg-gray-200 rounded overflow-hidden">
+                      {selectedVideo.thumbnail_url ? (
+                        <img 
+                          src={selectedVideo.thumbnail_url} 
+                          alt={selectedVideo.title} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-gray-500">No thumbnail available</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <h2 className="text-xl font-bold mb-2">{selectedVideo.title}</h2>
-                <div className="flex items-center text-gray-600 mb-2">
-                  {selectedVideo.channel_title ? (
-                    <span className="mr-4">{selectedVideo.channel_title}</span>
-                  ) : null}
-                  {selectedVideo.view_count ? (
-                    <span className="mr-4">{selectedVideo.view_count.toLocaleString()} views</span>
-                  ) : null}
-                  {selectedVideo.upload_date && selectedVideo.upload_date !== "null" ? (
-                    <span>Uploaded: {new Date(selectedVideo.upload_date).toLocaleDateString()}</span>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Metadata */}
-              <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
-                <h3 className="font-semibold text-lg mb-2">Video Metadata</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Duration</p>
-                    <p>{Math.floor(selectedVideo.duration / 60)}:{(selectedVideo.duration % 60).toString().padStart(2, '0')}</p>
                   </div>
-                  {selectedVideo.like_count !== undefined && (
-                    <div>
-                      <p className="text-sm text-gray-500">Likes</p>
-                      <p>{selectedVideo.like_count.toLocaleString()}</p>
+                  
+                  {/* Video info - takes more space */}
+                  <div className="md:w-2/3">
+                    <h2 className="text-xl font-bold mb-2">{selectedVideo.title}</h2>
+                    <div className="flex flex-wrap items-center text-gray-600 mb-3">
+                      {selectedVideo.channel_title ? (
+                        <span className="mr-4">{selectedVideo.channel_title}</span>
+                      ) : null}
+                      {selectedVideo.view_count ? (
+                        <span className="mr-4">{selectedVideo.view_count.toLocaleString()} views</span>
+                      ) : null}
+                      {selectedVideo.upload_date && selectedVideo.upload_date !== "null" ? (
+                        <span>Uploaded: {new Date(selectedVideo.upload_date).toLocaleDateString()}</span>
+                      ) : null}
                     </div>
-                  )}
-                  {selectedVideo.subscriber_count !== undefined && (
-                    <div>
-                      <p className="text-sm text-gray-500">Channel Subscribers</p>
-                      <p>{selectedVideo.subscriber_count.toLocaleString()}</p>
+                    
+                    {/* Quick metadata highlights */}
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {selectedVideo.duration && (
+                        <div className="flex items-center">
+                          <span className="text-gray-500 mr-1">Duration:</span>
+                          <span>{Math.floor(selectedVideo.duration / 60)}:{(selectedVideo.duration % 60).toString().padStart(2, '0')}</span>
+                        </div>
+                      )}
+                      {selectedVideo.like_count !== undefined && (
+                        <div className="flex items-center">
+                          <span className="text-gray-500 mr-1">Likes:</span>
+                          <span>{selectedVideo.like_count.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {selectedVideo.categories && selectedVideo.categories.length > 0 && (
+                        <div className="col-span-2 flex items-center">
+                          <span className="text-gray-500 mr-1">Categories:</span>
+                          <span>{selectedVideo.categories.join(', ')}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {selectedVideo.categories && selectedVideo.categories.length > 0 && (
-                    <div>
-                      <p className="text-sm text-gray-500">Categories</p>
-                      <p>{selectedVideo.categories.join(', ')}</p>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
-              {/* Digest Content */}
-              <div className="bg-white p-4 rounded-lg shadow-sm">
-                <h3 className="font-semibold text-lg mb-4">Digest</h3>
+              {/* Digest Content - Now more prominent */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="font-semibold text-xl mb-4 text-blue-800">Digest</h3>
                 {selectedVideo.summary ? (
                   <div className="prose max-w-none">
-                    <p className="whitespace-pre-line">{selectedVideo.summary}</p>
+                    {selectedVideo.summary.includes('**') || selectedVideo.summary.includes('#') ? (
+                      // If the summary contains markdown formatting, render it as is
+                      <p className="whitespace-pre-line">{selectedVideo.summary}</p>
+                    ) : (
+                      // Otherwise, try to structure it with paragraphs for better readability
+                      selectedVideo.summary.split('\n\n').map((paragraph, index) => (
+                        <p key={index} className="mb-4">{paragraph}</p>
+                      ))
+                    )}
                   </div>
                 ) : (
-                  <p className="text-gray-500">No digest available for this video.</p>
+                  <div className="bg-gray-50 p-4 rounded border border-gray-200 text-gray-500">
+                    <p>No digest available for this video.</p>
+                    <p className="text-sm mt-2">This could be because the video is still being processed or doesn't have a transcript available.</p>
+                  </div>
                 )}
               </div>
             </>
