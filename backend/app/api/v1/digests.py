@@ -192,8 +192,7 @@ async def create_digest(
             else:
                 # Create a default LLM if none exists
                 default_llm = LLMModel(
-                    name="GPT-4",
-                    model_id="gpt-4-0125-preview",
+                    name="gpt-4-0125-preview",
                     base_cost_per_token=0.00001,
                     description="OpenAI GPT-4 model"
                 )
@@ -266,8 +265,7 @@ async def create_video_digest(
             else:
                 # Create a default LLM if none exists
                 default_llm = LLMModel(
-                    name="GPT-4",
-                    model_id="gpt-4-0125-preview",
+                    name="gpt-4-0125-preview",
                     base_cost_per_token=0.00001,
                     description="OpenAI GPT-4 model"
                 )
