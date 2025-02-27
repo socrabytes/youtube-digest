@@ -39,26 +39,41 @@ export function formatViews(views?: number): string {
 export function formatDate(dateString?: string): string {
   if (!dateString) return '';
   
+  let date: Date;
+  
   // Handle YYYYMMDD format
-  if (/^\d{8}$/.test(dateString)) {
+  if (dateString.match(/^\d{8}$/)) {
     const year = dateString.substring(0, 4);
     const month = dateString.substring(4, 6);
     const day = dateString.substring(6, 8);
-    return new Date(`${year}-${month}-${day}`).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    date = new Date(`${year}-${month}-${day}`);
+  } else {
+    date = new Date(dateString);
   }
   
-  // Handle ISO format or other date strings
-  try {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch (e) {
-    return dateString;
+  // Check if date is valid
+  if (isNaN(date.getTime())) return '';
+  
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // If less than 7 days ago, show relative time
+  if (diffDays < 7) {
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays} days ago`;
   }
+  
+  // If less than 1 month ago, show weeks
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+  }
+  
+  // Show Month Day, Year for older dates
+  return date.toLocaleDateString('en-US', { 
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 }
