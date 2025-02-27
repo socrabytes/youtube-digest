@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
 from datetime import datetime
 import logging
 
@@ -210,7 +209,8 @@ async def create_digest(
             digest="",  # Empty digest initially
             tokens_used=0,
             cost=0.0,
-            model_version="pending"
+            model_version="pending",
+            generated_at=datetime.utcnow()  # Set generated_at to current time
         )
         
         db.add(db_digest)
@@ -283,7 +283,8 @@ async def create_video_digest(
             digest="",  # Empty digest initially
             tokens_used=0,
             cost=0.0,
-            model_version="pending"
+            model_version="pending",
+            generated_at=datetime.utcnow()  # Set generated_at to current time
         )
         
         db.add(digest)
