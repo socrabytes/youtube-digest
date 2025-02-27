@@ -18,12 +18,11 @@ router = APIRouter()
 
 class DigestBase(BaseModel):
     video_id: int
-    user_id: int
-    digest_type: str
-    llm_id: Optional[int] = None
 
 class DigestCreate(DigestBase):
-    pass
+    user_id: Optional[int] = 1  # Default to user ID 1 if not provided
+    digest_type: str = "summary"  # Default to summary type
+    llm_id: Optional[int] = None
 
 class DigestResponse(DigestBase):
     id: int
@@ -36,6 +35,9 @@ class DigestResponse(DigestBase):
     extra_data: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
+    user_id: int
+    digest_type: str
+    llm_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -149,8 +151,49 @@ async def get_user_digests(user_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/videos/{video_id}/digests", response_model=DigestResponse)
+@router.post("/digests/", response_model=DigestResponse)
 async def create_digest(
+    digest: DigestCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Create a new digest for a video"""
+    try:
+        # Check if video exists
+        video = db.query(VideoModel).filter(VideoModel.id == digest.video_id).first()
+        if video is None:
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        # Check if user exists
+        user = db.query(UserModel).filter(UserModel.id == digest.user_id).first()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Create new digest
+        db_digest = DigestModel(
+            video_id=digest.video_id,
+            user_id=digest.user_id,
+            digest_type=digest.digest_type,
+            llm_id=digest.llm_id,
+            digest="",  # Empty digest initially
+            tokens_used=0,
+            cost=0.0,
+            model_version="pending"
+        )
+        
+        db.add(db_digest)
+        db.commit()
+        db.refresh(db_digest)
+        
+        # Start background task to generate digest
+        background_tasks.add_task(generate_digest_background, db_digest.id)
+        
+        return db_digest
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/videos/{video_id}/digests", response_model=DigestResponse)
+async def create_video_digest(
     video_id: int,
     digest_create: DigestCreate,
     background_tasks: BackgroundTasks,
@@ -179,7 +222,11 @@ async def create_digest(
             video_id=video_id,
             user_id=digest_create.user_id,
             digest_type=digest_create.digest_type,
-            llm_id=digest_create.llm_id
+            llm_id=digest_create.llm_id,
+            digest="",  # Empty digest initially
+            tokens_used=0,
+            cost=0.0,
+            model_version="pending"
         )
         
         db.add(digest)
