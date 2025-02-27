@@ -21,7 +21,11 @@ This document summarizes the refactoring of the YouTube Video Digester applicati
     *   Multiple digest types (highlights, chapters, detailed) and LLM providers (`DIGESTS` table).
     *   Tracking of transcript source, processing status, and fetch/processing timestamps (`TRANSCRIPTS` table).
     *   User interaction tracking (saves, views, skips) (`USER_DIGESTS`, `DIGEST_INTERACTIONS` tables).
-
+*   **API Refactoring:** Completely refactored the backend API to work with the normalized schema:
+    *   Created separate router modules for each entity (videos, channels, transcripts, etc.)
+    *   Implemented a field mapping strategy to maintain API compatibility without database migrations
+    *   Ensured all tests pass in the Docker test environment
+    *   See [issue-45-backend-api-refactoring.md](./issue-45-backend-api-refactoring.md) for details
 
 ## Key Decisions and Rationale
 

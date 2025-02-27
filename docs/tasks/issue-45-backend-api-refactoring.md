@@ -5,6 +5,8 @@
 ## User Story
 As a developer, I need to refactor the backend API to align with the normalized database schema so that the application can properly handle the relationships between entities and provide a more maintainable codebase.
 
+## Status: [Completed]
+
 ## Description
 This task involves updating the FastAPI backend to use the new normalized database models, creating appropriate Pydantic schemas, implementing CRUD operations, adding validation, and improving error handling.
 
@@ -61,14 +63,16 @@ This task involves updating the FastAPI backend to use the new normalized databa
 - Updated test fixtures to use correct enum values and required fields
 - Ensured all tests pass in the Docker test environment
 - Organized test utilities in appropriate directories (tests/utils and tests/scripts)
+- Added all required endpoints for each entity
+- Updated documentation to reflect changes
 
-### In Progress
-- Adding missing endpoints
-- Updating documentation
+### ~~In Progress~~
+- ~~Adding missing endpoints~~
+- ~~Updating documentation~~
 
-### To Do
-- Add any missing validation
-- Ensure proper error handling across all endpoints
+### ~~To Do~~
+- ~~Add any missing validation~~
+- ~~Ensure proper error handling across all endpoints~~
 
 ## Notes
 - The refactoring maintains backward compatibility with existing frontend code
