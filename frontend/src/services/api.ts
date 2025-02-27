@@ -54,7 +54,7 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ url: videoUrl }),
+      body: JSON.stringify({ url: videoUrl }), // The API is already using the correct field name 'url' which matches the VideoCreate model in the backend
     });
     
     if (!videoResponse.ok) {
