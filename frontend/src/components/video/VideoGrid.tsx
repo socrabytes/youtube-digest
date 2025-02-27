@@ -30,11 +30,11 @@ const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels =
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {videos.map((video) => (
         <div 
           key={video.id} 
-          className="bg-white rounded-lg overflow-hidden hover:shadow-sm transition-all cursor-pointer flex flex-col"
+          className="bg-white overflow-hidden cursor-pointer flex flex-col"
           onClick={() => typeof onVideoSelect === 'function' ? onVideoSelect(video) : console.error('onVideoSelect is not a function')}
           aria-label={`Select video: ${video.title}`}
         >

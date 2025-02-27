@@ -326,7 +326,7 @@ export default function LibraryPage() {
 
   return (
     <MainLayout>
-      <div className="bg-gray-100 py-6 px-4 mb-6 rounded-lg shadow-sm">
+      <div className="bg-white py-6 px-4 mb-6 rounded-lg border border-gray-200">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex-1">
@@ -364,12 +364,12 @@ export default function LibraryPage() {
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm">
-            <div className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-medium">
+          <div className="mt-4 flex items-center text-sm text-gray-600">
+            <div>
               {filteredVideos.length} {filteredVideos.length === 1 ? 'video' : 'videos'} found
             </div>
             {hasDigestVideos.length > 0 && (
-              <div className="ml-3 text-gray-600">
+              <div className="ml-3">
                 Including {hasDigestVideos.length} with digests
               </div>
             )}
@@ -379,9 +379,9 @@ export default function LibraryPage() {
       
       <div className="flex">
         {/* Left sidebar - matching Digests page style */}
-        <div className={`${isFilterMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg shadow-sm overflow-hidden`}>
+        <div className={`${isFilterMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg border border-gray-200`}>
           <div className="p-3 border-b border-gray-100">
-            <h2 className="text-lg font-medium px-2 mb-2 flex items-center">
+            <h2 className="text-lg font-bold px-2 mb-2 flex items-center">
               <FilterIcon className="h-5 w-5 mr-2 text-gray-600" />
               Filters
             </h2>
@@ -509,27 +509,24 @@ export default function LibraryPage() {
                 {currentPage === 1 && (
                   <div className="mb-8">
                     <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Browse</h2>
-                    <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
+                    <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar" style={{ margin: '-4px' }}>
                       <button 
                         onClick={handleShowPopularVideos}
-                        className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap"
+                        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
                       >
-                        <ClockIcon className="h-4 w-4 mr-2 text-gray-500" />
-                        Popular Videos
+                        <span>Popular Videos</span>
                       </button>
                       <button 
                         onClick={handleShowRecentVideos}
-                        className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap"
+                        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
                       >
-                        <ClockIcon className="h-4 w-4 mr-2 text-gray-500" />
-                        Recently Added
+                        <span>Recently Added</span>
                       </button>
                       <button 
                         onClick={handleShowShortVideos}
-                        className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap"
+                        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
                       >
-                        <ClockIcon className="h-4 w-4 mr-2 text-gray-500" />
-                        Short Videos
+                        <span>Short Videos</span>
                       </button>
                       {categories.slice(0, 5).map(category => (
                         <button 
@@ -538,10 +535,9 @@ export default function LibraryPage() {
                             setSelectedCategories([category]);
                             setCurrentPage(1);
                           }}
-                          className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap"
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
                         >
-                          <CollectionIcon className="h-4 w-4 mr-2 text-gray-500" />
-                          {category}
+                          <span>{category}</span>
                         </button>
                       ))}
                     </div>
