@@ -18,6 +18,9 @@ export default function DigestsPage() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [channelsOpen, setChannelsOpen] = useState(false);
+  const [selectedChannels, setSelectedChannels] = useState<number[]>([]);
 
   useEffect(() => {
     // Fetch videos with digests
@@ -98,20 +101,11 @@ export default function DigestsPage() {
     setSelectedVideo(video);
   };
 
-  const handleChannelSelect = (channelId: number, channelName: string) => {
-    if (selectedChannel === channelId) {
-      // If clicking the already selected channel, clear the filter
-      setSelectedChannel(null);
-      setSelectedCategory(null);
-      setVideos(allVideos);
+  const handleChannelSelect = (channelId: number) => {
+    if (selectedChannels.includes(channelId)) {
+      setSelectedChannels(selectedChannels.filter(id => id !== channelId));
     } else {
-      // Filter videos by the selected channel
-      setSelectedChannel(channelId);
-      setSelectedCategory(null);
-      const filteredVideos = allVideos.filter(video => 
-        video.channel_id && video.channel_id.toString() === channelId.toString()
-      );
-      setVideos(filteredVideos);
+      setSelectedChannels([...selectedChannels, channelId]);
     }
   };
 
@@ -119,12 +113,12 @@ export default function DigestsPage() {
     if (selectedCategory === category) {
       // If clicking the already selected category, clear the filter
       setSelectedCategory(null);
-      setSelectedChannel(null);
+      setSelectedChannels([]);
       setVideos(allVideos);
     } else {
       // Filter videos by the selected category
       setSelectedCategory(category);
-      setSelectedChannel(null);
+      setSelectedChannels([]);
       const filteredVideos = allVideos.filter(video => 
         video.categories && video.categories.includes(category)
       );
@@ -184,6 +178,12 @@ export default function DigestsPage() {
     return { __html: `<p class="mb-4">${html}</p>` };
   };
 
+  const filteredVideos = videos.filter(video => 
+    video.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    video.channel_title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (video.categories && video.categories.some(category => category.toLowerCase().includes(searchTerm.toLowerCase())))
+  );
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -197,90 +197,117 @@ export default function DigestsPage() {
   return (
     <MainLayout>
       <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-gray-100 min-h-screen p-4 border-r border-gray-200">
-          {(selectedChannel || selectedCategory) && (
-            <div className="mb-4 p-2 bg-blue-50 rounded border border-blue-100">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-blue-800">
-                  {videos.length} video{videos.length !== 1 ? 's' : ''} found
-                </span>
-                <button 
-                  onClick={() => {
-                    setSelectedChannel(null);
-                    setSelectedCategory(null);
-                    setVideos(allVideos);
-                  }}
-                  className="text-xs text-blue-700 hover:text-blue-900"
-                >
-                  Clear filters
-                </button>
+        {/* Left sidebar - Improved styling */}
+        <div className="w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg shadow-sm">
+          <div className="p-3 border-b border-gray-100">
+            <h2 className="text-lg font-bold px-2 mb-2">Digests</h2>
+            
+            {/* Search box */}
+            <div className="relative mb-2">
+              <input
+                type="text"
+                placeholder="Search digests..."
+                className="w-full pl-3 pr-10 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
-              {selectedChannel && (
-                <div className="text-xs text-blue-700 mt-1">
-                  Channel: {channels.find(c => c.id === selectedChannel)?.name}
-                </div>
-              )}
-              {selectedCategory && (
-                <div className="text-xs text-blue-700 mt-1">
-                  Category: {selectedCategory}
-                </div>
-              )}
             </div>
-          )}
+          </div>
+        
+          {/* Video list with improved styling */}
+          <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+            {isLoading ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                <div className="animate-pulse">Loading videos...</div>
+              </div>
+            ) : filteredVideos.length === 0 ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                No videos found. Add one using the URL field above.
+              </div>
+            ) : (
+              <div>
+                {filteredVideos.map((video) => (
+                  <button
+                    key={video.id}
+                    onClick={() => handleVideoSelect(video)}
+                    className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors
+                      ${selectedVideo?.id === video.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
+                  >
+                    <div className="flex items-start space-x-2">
+                      {/* Video thumbnail */}
+                      <div className="flex-shrink-0 w-16 h-9 bg-gray-200 rounded overflow-hidden">
+                        {video.thumbnail_url ? (
+                          <img 
+                            src={video.thumbnail_url} 
+                            alt={video.title} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-xs text-gray-400">No image</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="overflow-hidden flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{video.title}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {video.channel_title || 
+                            (channels.find(c => c.id === video.channel_id)?.name) || 
+                            'Unknown channel'}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           
-          <div className="mb-6">
-            <h3 className="font-semibold text-lg mb-2">Digests</h3>
-            <ul className="space-y-2">
-              {videos.map((video) => (
-                <li 
-                  key={video.id} 
-                  className={`cursor-pointer p-2 rounded ${selectedVideo?.id === video.id ? 'bg-blue-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handleVideoSelect(video)}
-                >
-                  <div className="text-sm font-medium truncate">{video.title}</div>
-                </li>
-              ))}
-              {videos.length === 0 && (
-                <li className="text-gray-500 text-sm">No digests available</li>
-              )}
-            </ul>
-          </div>
-
-          <div className="mb-6">
-            <h3 className="font-semibold text-lg mb-2">Channels</h3>
-            <ul className="space-y-2">
-              {channels.map((channel) => (
-                <li 
-                  key={channel.id} 
-                  className={`cursor-pointer p-2 rounded ${selectedChannel === channel.id ? 'bg-blue-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handleChannelSelect(channel.id, channel.name)}
-                >
-                  <div className="text-sm font-medium truncate">{channel.name}</div>
-                </li>
-              ))}
-              {channels.length === 0 && (
-                <li className="text-gray-500 text-sm">No channels available</li>
-              )}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Categories</h3>
-            <ul className="space-y-2">
-              {categories.map((category, index) => (
-                <li 
-                  key={index} 
-                  className={`cursor-pointer p-2 rounded ${selectedCategory === category ? 'bg-blue-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handleCategorySelect(category)}
-                >
-                  <div className="text-sm font-medium truncate">{category}</div>
-                </li>
-              ))}
-              {categories.length === 0 && (
-                <li className="text-gray-500 text-sm">No categories available</li>
-              )}
-            </ul>
+          {/* Channels section with collapsible UI */}
+          <div className="mt-2 border-t border-gray-100">
+            <button 
+              className="flex items-center justify-between w-full p-3 text-left font-medium"
+              onClick={() => setChannelsOpen(!channelsOpen)}
+            >
+              <h3 className="text-md font-bold">Channels</h3>
+              <svg 
+                className={`h-4 w-4 text-gray-500 transform transition-transform ${channelsOpen ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {channelsOpen && (
+              <div className="px-3 pb-3 space-y-1">
+                {channels.map((channel) => (
+                  <div key={channel.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`channel-${channel.id}`}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      checked={selectedChannels.includes(channel.id)}
+                      onChange={() => handleChannelSelect(channel.id)}
+                    />
+                    <label
+                      htmlFor={`channel-${channel.id}`}
+                      className="ml-2 text-sm text-gray-600 block truncate"
+                    >
+                      {channel.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -400,39 +427,39 @@ export default function DigestsPage() {
               </div>
             </>
           ) : (
-            <div className="bg-white p-8 rounded-lg shadow-sm text-center">
-              <h2 className="text-2xl font-bold mb-4">Welcome to Your Digests</h2>
+            <div className="flex flex-col items-center justify-center p-6 md:p-10 bg-white rounded-lg shadow-sm mx-auto max-w-3xl">
+              <h2 className="text-2xl font-bold text-center mb-6">Welcome to Your Digests</h2>
+              <p className="text-center text-gray-600 mb-8">Select a video from the sidebar to view its digest.</p>
               
-              {videos.length > 0 ? (
-                <div>
-                  <p className="text-gray-600 mb-6">
-                    Select a video from the sidebar to view its digest.
-                  </p>
-                  <div className="flex justify-center mt-8">
-                    <div className="max-w-md p-6 bg-blue-50 rounded-lg border border-blue-100">
-                      <h3 className="text-lg font-medium text-blue-800 mb-2">How to use Digests</h3>
-                      <ul className="text-sm text-blue-700 list-disc pl-5 space-y-2">
-                        <li>Browse your digests in the sidebar</li>
-                        <li>Click on any digest to view its summary</li>
-                        <li>Add new digests using the YouTube URL field above</li>
-                        <li>Filter by channels or categories using the sidebar</li>
-                      </ul>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+                  <h3 className="font-semibold text-lg mb-3 text-blue-600">Getting Started</h3>
+                  <ul className="space-y-2 text-gray-700">
+                    <li className="flex items-start">
+                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">1</span>
+                      Browse your digests in the sidebar
+                    </li>
+                    <li className="flex items-start">
+                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">2</span>
+                      Click on any digest to view its summary
+                    </li>
+                  </ul>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-gray-600 mb-6">
-                    You don't have any video digests yet. Enter a YouTube URL above to create your first digest.
-                  </p>
-                  <div className="p-8 bg-gray-100 rounded-lg max-w-md mx-auto">
-                    <p className="text-gray-500 text-sm">
-                      YouTube Digest uses AI to create concise summaries of YouTube videos, 
-                      helping you quickly understand the content without watching the entire video.
-                    </p>
-                  </div>
+                
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+                  <h3 className="font-semibold text-lg mb-3 text-blue-600">Add New Content</h3>
+                  <ul className="space-y-2 text-gray-700">
+                    <li className="flex items-start">
+                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">1</span>
+                      Add new digests using the YouTube URL field above
+                    </li>
+                    <li className="flex items-start">
+                      <span className="inline-flex items-center justify-center mr-2 bg-blue-100 rounded-full w-5 h-5 text-xs text-blue-600">2</span>
+                      Filter by channels or categories using the sidebar
+                    </li>
+                  </ul>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
