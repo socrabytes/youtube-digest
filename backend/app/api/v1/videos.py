@@ -276,6 +276,10 @@ async def create_video(
         db.commit()
         db.refresh(db_video)
         
+        # Map fields for API compatibility
+        db_video.url = db_video.webpage_url
+        db_video.thumbnail_url = db_video.thumbnail
+        
         # Start background processing
         background_tasks.add_task(process_video_background, db_video.id)
         
@@ -332,6 +336,10 @@ async def process_video(
 
         # Add background task
         background_tasks.add_task(process_video_background, video_id)
+        
+        # Map fields for API compatibility
+        video.url = video.webpage_url
+        video.thumbnail_url = video.thumbnail
         
         return video
         
