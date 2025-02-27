@@ -122,7 +122,7 @@ async def process_video_background(video_id: int):
             if not transcript:
                 logger.info(f"[Background Task] Starting transcript extraction for video ID: {video_id}")
                 transcript_service = TranscriptService()
-                transcript_text, meta = transcript_service.extract_transcript(video.url)
+                transcript_text, meta = transcript_service.extract_transcript(video.webpage_url)
                 logger.info(f"[Background Task] Extracted {len(transcript_text)} character transcript for video ID: {video_id}")
                 
                 # Create new transcript record
@@ -239,7 +239,7 @@ async def create_video(
             existing_video.title = video_info['title']
             existing_video.description = video_info.get('description', '')
             existing_video.duration = video_info['duration']
-            existing_video.thumbnail_url = video_info.get('thumbnail_url')
+            existing_video.thumbnail = video_info.get('thumbnail_url')
             existing_video.view_count = video_info.get('view_count')
             existing_video.like_count = video_info.get('like_count')
             existing_video.tags = video_info.get('tags', [])
@@ -256,8 +256,8 @@ async def create_video(
             db_video = VideoModel(
                 youtube_id=video_info['youtube_id'],
                 title=video_info['title'],
-                url=str(video.url),
-                thumbnail_url=video_info.get('thumbnail_url'),
+                webpage_url=str(video.url),
+                thumbnail=video_info.get('thumbnail_url'),
                 duration=video_info['duration'],
                 view_count=video_info.get('view_count'),
                 like_count=video_info.get('like_count'),
@@ -439,7 +439,7 @@ async def generate_summary(
         # Extract transcript if not already present
         if not transcript:
             transcript_service = TranscriptService()
-            transcript_text, meta = transcript_service.extract_transcript(video.url)
+            transcript_text, meta = transcript_service.extract_transcript(video.webpage_url)
             
             # Create new transcript
             transcript = TranscriptModel(
