@@ -314,40 +314,56 @@ export default function DigestsPage() {
                   {/* Video info - takes more space */}
                   <div className="md:w-2/3">
                     <h2 className="text-xl font-bold mb-2">{selectedVideo.title}</h2>
-                    <div className="flex flex-wrap items-center text-gray-600 mb-3">
-                      {selectedVideo.channel_title ? (
-                        <span className="mr-4">{selectedVideo.channel_title}</span>
-                      ) : (
-                        channels.find(c => c.id === selectedVideo.channel_id) && (
-                          <span className="mr-4">{channels.find(c => c.id === selectedVideo.channel_id)?.name}</span>
-                        )
-                      )}
-                      {selectedVideo.view_count ? (
-                        <span className="mr-4">{selectedVideo.view_count.toLocaleString()} views</span>
-                      ) : null}
-                      {selectedVideo.upload_date && selectedVideo.upload_date !== "null" ? (
-                        <span>Uploaded: {new Date(selectedVideo.upload_date).toLocaleDateString()}</span>
-                      ) : null}
-                    </div>
                     
-                    {/* Quick metadata highlights */}
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    {/* Video metadata in a consistent format */}
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4">
+                      {/* Channel */}
+                      <div className="col-span-2 md:col-span-1">
+                        <p className="text-sm text-gray-500">Channel</p>
+                        <p>
+                          {selectedVideo.channel_title || 
+                            (channels.find(c => c.id === selectedVideo.channel_id)?.name) || 
+                            'Unknown channel'}
+                        </p>
+                      </div>
+                      
+                      {/* Upload Date */}
+                      {selectedVideo.upload_date && selectedVideo.upload_date !== "null" && (
+                        <div>
+                          <p className="text-sm text-gray-500">Uploaded</p>
+                          <p>{new Date(selectedVideo.upload_date).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      
+                      {/* Views */}
+                      {selectedVideo.view_count !== undefined && (
+                        <div>
+                          <p className="text-sm text-gray-500">Views</p>
+                          <p>{selectedVideo.view_count.toLocaleString()}</p>
+                        </div>
+                      )}
+                      
+                      {/* Duration */}
                       {selectedVideo.duration && (
-                        <div className="flex items-center">
-                          <span className="text-gray-500 mr-1">Duration:</span>
-                          <span>{Math.floor(selectedVideo.duration / 60)}:{(selectedVideo.duration % 60).toString().padStart(2, '0')}</span>
+                        <div>
+                          <p className="text-sm text-gray-500">Duration</p>
+                          <p>{Math.floor(selectedVideo.duration / 60)}:{(selectedVideo.duration % 60).toString().padStart(2, '0')}</p>
                         </div>
                       )}
+                      
+                      {/* Likes */}
                       {selectedVideo.like_count !== undefined && (
-                        <div className="flex items-center">
-                          <span className="text-gray-500 mr-1">Likes:</span>
-                          <span>{selectedVideo.like_count.toLocaleString()}</span>
+                        <div>
+                          <p className="text-sm text-gray-500">Likes</p>
+                          <p>{selectedVideo.like_count.toLocaleString()}</p>
                         </div>
                       )}
+                      
+                      {/* Categories */}
                       {selectedVideo.categories && selectedVideo.categories.length > 0 && (
-                        <div className="col-span-2 flex items-center">
-                          <span className="text-gray-500 mr-1">Categories:</span>
-                          <span>{selectedVideo.categories.join(', ')}</span>
+                        <div className="col-span-2">
+                          <p className="text-sm text-gray-500">Categories</p>
+                          <p>{selectedVideo.categories.join(', ')}</p>
                         </div>
                       )}
                     </div>
