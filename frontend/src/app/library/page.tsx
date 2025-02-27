@@ -13,8 +13,10 @@ import {
   FilterIcon,
   CollectionIcon,
   AdjustmentsIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ClockIcon
 } from '@heroicons/react/outline';
+import MainLayout from '@/components/layout/MainLayout';
 
 export default function LibraryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -62,7 +64,7 @@ export default function LibraryPage() {
   useEffect(() => {
     // Set initial view based on URL params if present
     const viewParam = searchParams.get('view');
-    if (viewParam === 'list' || viewParam === 'grid') {
+    if (viewParam === 'grid' || viewParam === 'list') {
       setView(viewParam);
     }
 
@@ -72,8 +74,9 @@ export default function LibraryPage() {
       try {
         const [videosData, channelsData] = await Promise.all([
           api.getVideos(),
-          api.getChannels(),
+          api.getChannels()
         ]);
+        
         setVideos(videosData);
         setFilteredVideos(videosData);
         setChannels(channelsData);
@@ -88,66 +91,71 @@ export default function LibraryPage() {
     fetchData();
   }, [searchParams]);
 
-  // Filter and sort videos when dependencies change
+  // Filter and sort videos based on user selections
   useEffect(() => {
     let result = [...videos];
-
-    // Apply search filter
-    if (searchTerm) {
+    
+    // Filter by search term
+    if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(video => 
-        video.title.toLowerCase().includes(term) || 
-        (video.channel_title && video.channel_title.toLowerCase().includes(term))
+        video.title?.toLowerCase().includes(term) || 
+        video.channel_title?.toLowerCase().includes(term)
       );
     }
-
-    // Apply category filter
+    
+    // Filter by categories
     if (selectedCategories.length > 0) {
       result = result.filter(video => {
         if (!video.categories) return false;
-        const videoCategories = Array.isArray(video.categories) ? video.categories : [];
-        return selectedCategories.some(cat => videoCategories.includes(cat));
+        return selectedCategories.some(category => 
+          video.categories.includes(category)
+        );
       });
     }
-
-    // Apply duration filter
-    if (durationFilter !== 'all' && videos.some(v => v.duration)) {
+    
+    // Filter by duration
+    if (durationFilter !== 'all' && durationFilter) {
       result = result.filter(video => {
         const duration = video.duration || 0;
-        switch (durationFilter) {
-          case 'short': return duration < 300; // < 5 minutes
-          case 'medium': return duration >= 300 && duration < 1200; // 5-20 minutes
-          case 'long': return duration >= 1200; // > 20 minutes
-          default: return true;
-        }
+        if (durationFilter === 'short') return duration < 300; // < 5 min
+        if (durationFilter === 'medium') return duration >= 300 && duration <= 1200; // 5-20 min
+        if (durationFilter === 'long') return duration > 1200; // > 20 min
+        return true;
       });
     }
-
-    // Apply sorting
+    
+    // Sort videos
     result.sort((a, b) => {
       if (sortBy === 'date') {
         const dateA = a.upload_date ? new Date(a.upload_date) : new Date(0);
         const dateB = b.upload_date ? new Date(b.upload_date) : new Date(0);
         return sortOrder === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
-      } else if (sortBy === 'title') {
+      }
+      
+      if (sortBy === 'title') {
         const titleA = a.title || '';
         const titleB = b.title || '';
         return sortOrder === 'asc' ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
-      } else if (sortBy === 'views') {
+      }
+      
+      if (sortBy === 'views') {
         const viewsA = a.view_count || 0;
         const viewsB = b.view_count || 0;
         return sortOrder === 'asc' ? viewsA - viewsB : viewsB - viewsA;
       }
+      
       return 0;
     });
-
+    
     setFilteredVideos(result);
   }, [videos, searchTerm, selectedCategories, durationFilter, sortBy, sortOrder]);
 
-  // Toggle between grid and list views
+  // Toggle view between grid and list
   const toggleView = (newView: 'grid' | 'list') => {
     setView(newView);
-    // Update URL without page reload for bookmarking capability
+    
+    // Update URL with the new view parameter
     const url = new URL(window.location.href);
     url.searchParams.set('view', newView);
     window.history.pushState({}, '', url.toString());
@@ -156,23 +164,17 @@ export default function LibraryPage() {
   // Handle sort change
   const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
-    if (value === 'date_asc' || value === 'date_desc') {
-      setSortBy('date');
-      setSortOrder(value.endsWith('asc') ? 'asc' : 'desc');
-    } else if (value === 'title_asc' || value === 'title_desc') {
-      setSortBy('title');
-      setSortOrder(value.endsWith('asc') ? 'asc' : 'desc');
-    } else if (value === 'views_asc' || value === 'views_desc') {
-      setSortBy('views');
-      setSortOrder(value.endsWith('asc') ? 'asc' : 'desc');
-    }
+    const [newSortBy, newSortOrder] = value.split('_') as [typeof sortBy, typeof sortOrder];
+    
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
   };
 
-  // Toggle a category filter
+  // Toggle category selection
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category) 
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
         : [...prev, category]
     );
   };
@@ -185,169 +187,179 @@ export default function LibraryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
-          <p className="mt-4 text-gray-600">Loading video library...</p>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
+            <p className="mt-4 text-gray-600">Loading video library...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 p-6 rounded-lg">
-          <h3 className="text-red-800 font-medium">Error Loading Library</h3>
-          <p className="mt-2 text-red-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            Try Again
-          </button>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Video Library</h1>
-          <p className="mt-2 text-gray-600">Browse your video collection and discover content for digests</p>
-        </div>
-
-        {/* Controls Bar */}
-        <div className="bg-white p-4 shadow rounded-lg mb-6 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-          {/* Search */}
-          <div className="relative w-full md:w-auto md:flex-grow md:max-w-md">
-            <input
-              type="text"
-              placeholder="Search videos..."
-              className="pl-3 pr-10 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-            <SearchIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+    <MainLayout>
+      <div className="flex">
+        {/* Left sidebar - matching Digests page style */}
+        <div className="w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg shadow-sm">
+          <div className="p-3 border-b border-gray-100">
+            <h2 className="text-lg font-bold px-2 mb-2 flex items-center">
+              <FilterIcon className="h-5 w-5 mr-2 text-indigo-600" />
+              Filters
+            </h2>
+            
+            {/* Search box - styled like Digests page */}
+            <div className="relative mb-4">
+              <input
+                type="text"
+                placeholder="Search videos..."
+                className="w-full pl-3 pr-10 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <SearchIcon className="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
           </div>
-          
-          {/* Right Controls */}
-          <div className="flex items-center space-x-4 w-full md:w-auto">
+
+          <div className="p-4">
+            {/* View Toggles */}
+            <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
+              <span className="text-sm font-medium text-gray-700">View:</span>
+              <div className="flex items-center space-x-2 border border-gray-200 rounded-md p-1">
+                <button
+                  onClick={() => toggleView('grid')}
+                  className={`p-1.5 rounded ${view === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
+                  aria-label="Grid view"
+                >
+                  <ViewGridIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => toggleView('list')}
+                  className={`p-1.5 rounded ${view === 'list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
+                  aria-label="List view"
+                >
+                  <ViewListIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
             {/* Sort Options */}
-            <div>
+            <div className="mb-4 border-b border-gray-100 pb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort by:</label>
               <select
                 onChange={handleSortChange}
                 value={`${sortBy}_${sortOrder}`}
-                className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               >
                 {sortOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
-            
-            {/* View Toggles */}
-            <div className="flex items-center space-x-2 border border-gray-200 rounded-md p-1">
-              <button
-                onClick={() => toggleView('grid')}
-                className={`p-1.5 rounded ${view === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
-                aria-label="Grid view"
-              >
-                <ViewGridIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => toggleView('list')}
-                className={`p-1.5 rounded ${view === 'list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
-                aria-label="List view"
-              >
-                <ViewListIcon className="h-5 w-5" />
-              </button>
+
+            {/* Duration Filter */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <ClockIcon className="h-4 w-4 mr-1 text-gray-500" />
+                Duration
+              </h3>
+              <div className="space-y-2">
+                {durations.map(duration => (
+                  <div key={duration.value} className="flex items-center">
+                    <input
+                      id={`duration-${duration.value}`}
+                      name="duration"
+                      type="radio"
+                      checked={durationFilter === duration.value}
+                      onChange={() => setDurationFilter(duration.value as any)}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label htmlFor={`duration-${duration.value}`} className="ml-2 text-sm text-gray-700 capitalize">
+                      {duration.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Main Grid */}
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-1/4">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="font-medium text-lg mb-4 flex items-center">
-                <FilterIcon className="h-5 w-5 mr-2 text-indigo-600" />
-                Filters
-              </h2>
-
-              {/* Duration Filter */}
-              <div className="mb-6">
+            {/* Categories Filter */}
+            {categories.length > 0 && (
+              <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <AdjustmentsIcon className="h-4 w-4 mr-1 text-gray-500" />
-                  Duration
+                  <CollectionIcon className="h-4 w-4 mr-1 text-gray-500" />
+                  Categories
                 </h3>
-                <div className="space-y-2">
-                  {durations.map(duration => (
-                    <div key={duration.value} className="flex items-center">
+                <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {categories.map(category => (
+                    <div key={category} className="flex items-center">
                       <input
-                        id={`duration-${duration.value}`}
-                        name="duration"
-                        type="radio"
-                        checked={durationFilter === duration.value}
-                        onChange={() => setDurationFilter(duration.value)}
-                        className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                        id={`category-${category}`}
+                        type="checkbox"
+                        checked={selectedCategories.includes(category)}
+                        onChange={() => toggleCategory(category)}
+                        className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                       />
-                      <label htmlFor={`duration-${duration.value}`} className="ml-2 text-sm text-gray-700 capitalize">
-                        {duration.label}
+                      <label htmlFor={`category-${category}`} className="ml-2 text-sm text-gray-700">
+                        {category}
                       </label>
                     </div>
                   ))}
                 </div>
               </div>
+            )}
 
-              {/* Categories Filter */}
-              {categories.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                    <CollectionIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    Categories
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {categories.map(category => (
-                      <div key={category} className="flex items-center">
-                        <input
-                          id={`category-${category}`}
-                          type="checkbox"
-                          checked={selectedCategories.includes(category)}
-                          onChange={() => toggleCategory(category)}
-                          className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                        />
-                        <label htmlFor={`category-${category}`} className="ml-2 text-sm text-gray-700">
-                          {category}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* Filter Reset */}
+            {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm) && (
+              <button
+                onClick={() => {
+                  setSelectedCategories([]);
+                  setDurationFilter('all');
+                  setSearchTerm('');
+                }}
+                className="mt-6 w-full py-2 px-3 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+              >
+                Reset Filters
+              </button>
+            )}
+          </div>
+        </div>
 
-              {/* Filter Reset */}
-              {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm) && (
-                <button
-                  onClick={() => {
-                    setSelectedCategories([]);
-                    setDurationFilter('all');
-                    setSearchTerm('');
-                  }}
-                  className="mt-4 w-full py-2 px-3 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 text-gray-700"
-                >
-                  Reset Filters
-                </button>
-              )}
+        {/* Main Content Area */}
+        <div className="flex-1 ml-0 md:ml-6">
+          {/* Page Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Video Library</h1>
+            <p className="mt-1 text-gray-600">Browse your video collection and discover content for digests</p>
+            <div className="mt-2 text-sm text-indigo-600">
+              {filteredVideos.length} {filteredVideos.length === 1 ? 'video' : 'videos'} found
             </div>
           </div>
 
-          {/* Main Content Area */}
-          <div className="lg:w-3/4">
+          {/* Videos Display */}
+          <div>
             {filteredVideos.length === 0 ? (
               <div className="bg-white shadow rounded-lg p-8 text-center">
                 <InformationCircleIcon className="mx-auto h-12 w-12 text-indigo-400" />
@@ -376,6 +388,6 @@ export default function LibraryPage() {
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }
