@@ -77,11 +77,12 @@ All database-related tasks are complete. The schema is now properly normalized w
    - ~~Add validation using new constraints~~
    - ~~Update error handling~~
 
-2. Frontend Updates 
+2. Frontend Updates ➡️ *In Progress in Issue #34*
    - Adapt to new API structure
    - Update data fetching
    - Modify UI components
    - Add new features enabled by schema
+   - See [issue-34-video-library-view.md](./issue-34-video-library-view.md) for details
 
 3. Additional Backend Enhancements
    - Implement caching (Redis/Memcached) for frequently accessed data
