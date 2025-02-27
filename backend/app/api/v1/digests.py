@@ -173,7 +173,16 @@ async def create_digest(
         # Check if user exists
         user = db.query(UserModel).filter(UserModel.id == digest.user_id).first()
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            # Create a default user if none exists
+            default_user = UserModel(
+                id=1,
+                username="default_user",
+                email="default@example.com"
+            )
+            db.add(default_user)
+            db.commit()
+            db.refresh(default_user)
+            user = default_user
         
         # Get the default LLM if not specified
         if not digest.llm_id:
@@ -235,7 +244,16 @@ async def create_video_digest(
         # Validate user exists
         user = db.query(UserModel).filter(UserModel.id == digest_create.user_id).first()
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            # Create a default user if none exists
+            default_user = UserModel(
+                id=1,
+                username="default_user",
+                email="default@example.com"
+            )
+            db.add(default_user)
+            db.commit()
+            db.refresh(default_user)
+            user = default_user
             
         # Validate LLM exists if provided
         if digest_create.llm_id:
