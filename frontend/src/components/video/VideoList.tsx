@@ -98,12 +98,18 @@ const VideoList: React.FC<VideoListProps> = ({
                   {formatDuration(video.duration)}
                 </div>
               )}
+              {/* Digest badge if available */}
+              {video.summary && (
+                <div className="absolute top-1 right-1 bg-indigo-600 text-white text-xs px-1 rounded-full">
+                  Digest
+                </div>
+              )}
             </div>
             
             {/* Video Info */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-medium text-gray-900 truncate">{video.title}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="text-base font-medium text-gray-900 line-clamp-2">{video.title}</h3>
+              <p className="text-sm text-gray-500 truncate">
                 {getChannelName(video)}
               </p>
               <div className="mt-1 flex items-center text-xs text-gray-500 space-x-2">
@@ -111,10 +117,9 @@ const VideoList: React.FC<VideoListProps> = ({
                   <span>{formatDate(video.upload_date)}</span>
                 )}
                 {video.view_count !== undefined && (
-                  <span>• {video.view_count.toLocaleString()} views</span>
-                )}
-                {video.summary && (
-                  <span className="text-indigo-600">• Has summary</span>
+                  <span>• {video.view_count >= 1000 
+                    ? `${Math.floor(video.view_count/1000)}K views` 
+                    : `${video.view_count} views`}</span>
                 )}
               </div>
             </div>
