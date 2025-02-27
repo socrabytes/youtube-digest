@@ -79,6 +79,9 @@ export default function LibraryPage() {
   const indexOfFirstVideo = indexOfLastVideo - videosPerPage;
   const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
 
+  // Get videos with digests
+  const hasDigestVideos = filteredVideos.filter(video => video.has_digest);
+
   // Change page
   const paginate = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -264,6 +267,37 @@ export default function LibraryPage() {
     }
   });
 
+  const handleShowPopularVideos = () => {
+    // Sort by view count and set filter
+    setSortBy('views');
+    setSortOrder('desc');
+    // Reset other filters
+    setSearchTerm('');
+    setSelectedCategories([]);
+    setDurationFilter('all');
+    setCurrentPage(1);
+  };
+
+  const handleShowRecentVideos = () => {
+    // Sort by date and set filter
+    setSortBy('date');
+    setSortOrder('desc');
+    // Reset other filters
+    setSearchTerm('');
+    setSelectedCategories([]);
+    setDurationFilter('all');
+    setCurrentPage(1);
+  };
+
+  const handleShowShortVideos = () => {
+    // Set duration filter to short
+    setDurationFilter('short');
+    // Reset other filters
+    setSearchTerm('');
+    setSelectedCategories([]);
+    setCurrentPage(1);
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -292,9 +326,60 @@ export default function LibraryPage() {
 
   return (
     <MainLayout>
+      <div className="bg-gradient-to-b from-indigo-50 to-white py-6 px-4 mb-6 rounded-lg shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900">Video Library</h1>
+              <p className="mt-2 text-lg text-gray-600 max-w-3xl">
+                Browse your personal collection of videos, create digests from new content, or review your existing digests.
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <div className="flex items-center space-x-2">
+                <div className="bg-white rounded-md shadow-sm p-2 inline-flex items-center border border-gray-200">
+                  <span className="text-gray-500 text-sm mr-2 hidden sm:inline">View as:</span>
+                  <button
+                    onClick={() => toggleView('grid')}
+                    className={`p-1.5 rounded ${view === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    aria-label="Grid view"
+                  >
+                    <ViewGridIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => toggleView('list')}
+                    className={`p-1.5 rounded ${view === 'list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    aria-label="List view"
+                  >
+                    <ViewListIcon className="h-5 w-5" />
+                  </button>
+                </div>
+                <button 
+                  onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  {isFilterMenuOpen ? 'Hide Filters' : 'Show Filters'}
+                  <FilterIcon className="ml-2 -mr-0.5 h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center text-sm">
+            <div className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-medium">
+              {filteredVideos.length} {filteredVideos.length === 1 ? 'video' : 'videos'} found
+            </div>
+            {hasDigestVideos.length > 0 && (
+              <div className="ml-3 text-gray-600">
+                Including {hasDigestVideos.length} with digests
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
       <div className="flex">
         {/* Left sidebar - matching Digests page style */}
-        <div className="w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg shadow-sm">
+        <div className={`${isFilterMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg shadow-sm`}>
           <div className="p-3 border-b border-gray-100">
             <h2 className="text-lg font-bold px-2 mb-2 flex items-center">
               <FilterIcon className="h-5 w-5 mr-2 text-indigo-600" />
@@ -318,27 +403,6 @@ export default function LibraryPage() {
           </div>
 
           <div className="p-4">
-            {/* View Toggles */}
-            <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
-              <span className="text-sm font-medium text-gray-700">View:</span>
-              <div className="flex items-center space-x-2 border border-gray-200 rounded-md p-1">
-                <button
-                  onClick={() => toggleView('grid')}
-                  className={`p-1.5 rounded ${view === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
-                  aria-label="Grid view"
-                >
-                  <ViewGridIcon className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => toggleView('list')}
-                  className={`p-1.5 rounded ${view === 'list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
-                  aria-label="List view"
-                >
-                  <ViewListIcon className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-
             {/* Sort Options */}
             <div className="mb-4 border-b border-gray-100 pb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Sort by:</label>
@@ -422,15 +486,6 @@ export default function LibraryPage() {
 
         {/* Main Content Area */}
         <div className="flex-1 ml-0 md:ml-6">
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Video Library</h1>
-            <p className="mt-1 text-gray-600">Browse your video collection and discover content for digests</p>
-            <div className="mt-2 text-sm text-indigo-600">
-              {filteredVideos.length} {filteredVideos.length === 1 ? 'video' : 'videos'} found
-            </div>
-          </div>
-
           {/* Videos Display */}
           <div>
             {currentVideos.length === 0 ? (
@@ -450,19 +505,94 @@ export default function LibraryPage() {
               />
             ) : (
               <>
-                {view === 'grid' ? (
-                  <VideoGrid 
-                    videos={currentVideos} 
-                    onVideoSelect={handleVideoSelect} 
-                    channels={channels}
-                  />
-                ) : (
-                  <VideoList 
-                    videos={currentVideos} 
-                    onVideoSelect={handleVideoSelect} 
-                    channels={channels}
-                  />
+                {/* Quick browse chips */}
+                {currentPage === 1 && (
+                  <div className="mb-8">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Browse</h2>
+                    <div className="flex flex-wrap gap-3">
+                      <button 
+                        onClick={handleShowPopularVideos}
+                        className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <ClockIcon className="h-4 w-4 mr-2 text-indigo-500" />
+                        Popular Videos
+                      </button>
+                      <button 
+                        onClick={handleShowRecentVideos}
+                        className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <ClockIcon className="h-4 w-4 mr-2 text-indigo-500" />
+                        Recently Added
+                      </button>
+                      <button 
+                        onClick={handleShowShortVideos}
+                        className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <ClockIcon className="h-4 w-4 mr-2 text-indigo-500" />
+                        Short Videos
+                      </button>
+                      {categories.slice(0, 3).map(category => (
+                        <button 
+                          key={category}
+                          onClick={() => {
+                            setSelectedCategories([category]);
+                            setCurrentPage(1);
+                          }}
+                          className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <CollectionIcon className="h-4 w-4 mr-2 text-indigo-500" />
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
+                {/* Section for videos with digests */}
+                {hasDigestVideos.length > 0 && (
+                  <div className="mb-10">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                      <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                        Digested
+                      </span>
+                      Videos with Digests
+                    </h2>
+                    
+                    {view === 'grid' ? (
+                      <VideoGrid 
+                        videos={currentPage === 1 ? hasDigestVideos.slice(0, videosPerPage) : []} 
+                        onVideoSelect={handleVideoSelect} 
+                        channels={channels}
+                      />
+                    ) : (
+                      <VideoList 
+                        videos={currentPage === 1 ? hasDigestVideos.slice(0, videosPerPage) : []} 
+                        onVideoSelect={handleVideoSelect} 
+                        channels={channels}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Section for all videos or paginated results */}
+                <div>
+                  {hasDigestVideos.length > 0 && currentPage === 1 && (
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">All Videos</h2>
+                  )}
+                  
+                  {view === 'grid' ? (
+                    <VideoGrid 
+                      videos={currentVideos} 
+                      onVideoSelect={handleVideoSelect} 
+                      channels={channels}
+                    />
+                  ) : (
+                    <VideoList 
+                      videos={currentVideos} 
+                      onVideoSelect={handleVideoSelect} 
+                      channels={channels}
+                    />
+                  )}
+                </div>
               </>
             )}
           </div>
