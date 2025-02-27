@@ -50,4 +50,5 @@ export interface VideoFilterOptions {
   sortBy: 'date' | 'relevance' | 'views';
   timeRange: 'day' | 'week' | 'month' | 'year' | 'all';
   hasDigest: boolean;
+  category?: string;
 }

@@ -219,6 +219,7 @@ async def create_video(
             channel = ChannelModel(
                 youtube_channel_id=video_info['channel_id'],
                 name=video_info['channel_title'],
+                channel_url=f"https://www.youtube.com/channel/{video_info['channel_id']}",
                 thumbnail_url=None,  # We don't have this from yt-dlp yet
                 subscriber_count=video_info.get('subscriber_count'),
                 last_updated=datetime.utcnow()
