@@ -90,7 +90,6 @@ async def process_video_background(video_id: int):
     logger.info(f"[Background Task] Starting processing for video ID: {video_id}")
     db = SessionLocal()
     failed_stages = []
-    last_successful_stage = None
     
     try:
         logger.info(f"[Background Task] Retrieved database session for video ID: {video_id}")
@@ -137,8 +136,6 @@ async def process_video_background(video_id: int):
                 db.commit()
                 
                 logger.info(f"[Background Task] Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
-                last_successful_stage = "transcript_extraction"
-                transcript = new_transcript
             else:
                 logger.info(f"[Background Task] Using existing transcript for video ID: {video_id}")
                 video.processing_status = ProcessingStatus.SUMMARIZING
@@ -158,7 +155,6 @@ async def process_video_background(video_id: int):
             db.commit()
             
             logger.info(f"[Background Task] Video processing completed for video ID: {video_id}")
-            last_successful_stage = "summary_generation"
             
         except VideoTranscriptError as e:
             logger.error(f"[Background Task] Transcript error: {str(e)}")
@@ -185,8 +181,7 @@ async def process_video_background(video_id: int):
         logger.error(f"[Background Task] Critical error: {str(e)}", exc_info=True)
     finally:
         db.close()
-        logger.info(f"[Background Task] Processing completed for video ID: {video_id}. "
-                  f"Last successful stage: {last_successful_stage}, Failed stages: {failed_stages}")
+        logger.info(f"[Background Task] Processing completed for video ID: {video_id}. Failed stages: {failed_stages}")
 
 @router.post("/videos/", response_model=VideoResponse)
 async def create_video(
@@ -461,7 +456,6 @@ async def generate_summary(
             db.commit()
             
             logger.info(f"[Background Task] Transcript saved and status set to SUMMARIZING for video ID: {video_id}")
-            last_successful_stage = "transcript_extraction"
         else:
             logger.info(f"[Background Task] Using existing transcript for video ID: {video_id}")
             video.processing_status = ProcessingStatus.SUMMARIZING
