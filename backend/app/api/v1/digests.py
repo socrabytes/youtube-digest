@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
+from pydantic import BaseModel
 
 from app.db.database import get_db, SessionLocal
 from app.models.digest import Digest as DigestModel
