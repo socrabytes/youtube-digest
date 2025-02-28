@@ -51,6 +51,7 @@ ENV/
 
 # Database
 *.sqlite3
+*.db
 
 # Logs
 logs/
@@ -63,5 +64,6 @@ uploads/
 # Docker
 .docker/
 
-# Analysis files
+# Analysis files & working directories/files
 backend/analysis/
+backup_before_reset.sql
