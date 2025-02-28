@@ -21,7 +21,10 @@ import {
   ClockIcon,
   CollectionIcon,
   AdjustmentsIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  XCircleIcon
 } from '@heroicons/react/outline';
 import MainLayout from '@/components/layout/MainLayout';
 
@@ -41,6 +44,8 @@ export default function LibraryPage() {
   const [durationFilter, setDurationFilter] = useState<'all' | 'short' | 'medium' | 'long'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'views'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showOnlyMyVideos, setShowOnlyMyVideos] = useState(true); // Default to showing only user's videos
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const categories = React.useMemo(() => {
     const allCategories = new Set<string>();
@@ -81,6 +86,9 @@ export default function LibraryPage() {
 
   // Get videos with digests
   const hasDigestVideos = filteredVideos.filter(video => video.has_digest);
+
+  // Get videos without digests
+  const noDigestVideos = filteredVideos.filter(video => !video.has_digest);
 
   // Change page
   const paginate = (pageNumber: number) => {
@@ -165,6 +173,11 @@ export default function LibraryPage() {
       });
     }
     
+    // Filter by user's videos
+    if (showOnlyMyVideos) {
+      result = result.filter(video => video.user_id === 'current_user_id'); // Replace 'current_user_id' with actual user ID
+    }
+    
     // Sort videos
     result.sort((a, b) => {
       if (sortBy === 'date') {
@@ -189,7 +202,34 @@ export default function LibraryPage() {
     });
     
     setFilteredVideos(result);
-  }, [videos, searchTerm, selectedCategories, durationFilter, sortBy, sortOrder]);
+  }, [videos, searchTerm, selectedCategories, durationFilter, sortBy, sortOrder, showOnlyMyVideos]);
+
+  // Define a function to determine if filters are active
+  const showingFilteredResults = selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm.trim() !== '';
+
+  // Helper function to describe the active filter
+  const getActiveFilterDescription = () => {
+    let description = [];
+    
+    if (selectedCategories.length > 0) {
+      description.push(`Category: ${selectedCategories.join(', ')}`);
+    }
+    
+    if (durationFilter !== 'all') {
+      const durationLabels: Record<string, string> = {
+        'short': 'Short videos (< 5 min)',
+        'medium': 'Medium videos (5-20 min)',
+        'long': 'Long videos (> 20 min)'
+      };
+      description.push(durationLabels[durationFilter] || durationFilter);
+    }
+    
+    if (searchTerm) {
+      description.push(`Search: "${searchTerm}"`);
+    }
+    
+    return description.join(' • ');
+  };
 
   // Toggle view between grid and list
   const toggleView = (newView: 'grid' | 'list') => {
@@ -298,6 +338,17 @@ export default function LibraryPage() {
     setCurrentPage(1);
   };
 
+  const resetAllFilters = () => {
+    setSearchTerm('');
+    setSelectedCategories([]);
+    setDurationFilter('all');
+    setShowOnlyMyVideos(true);
+    setActiveFilter('all');
+    setSortBy('date');
+    setSortOrder('desc');
+    setCurrentPage(1);
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -326,320 +377,530 @@ export default function LibraryPage() {
 
   return (
     <MainLayout>
-      <div className="bg-white py-6 px-4 mb-6 rounded-lg border border-gray-200">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">Video Library</h1>
-              <p className="mt-2 text-lg text-gray-600 max-w-3xl">
-                Browse your personal collection of videos, create digests from new content, or review your existing digests.
-              </p>
+      <div className="py-5">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              Video Library
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Browse your personal collection of videos, create digests from new content, or review your existing digests.
+            </p>
+            <div className="mt-2 text-sm text-gray-500">
+              {videos.length} videos found
+              {hasDigestVideos.length > 0 && ` • Including ${hasDigestVideos.length} with digests`}
             </div>
-            <div className="mt-4 md:mt-0">
-              <div className="flex items-center space-x-2">
-                <div className="bg-white rounded-md shadow-sm p-2 inline-flex items-center border border-gray-200">
-                  <span className="text-gray-500 text-sm mr-2 hidden sm:inline">View as:</span>
-                  <button
-                    onClick={() => toggleView('grid')}
-                    className={`p-1.5 rounded ${view === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
-                    aria-label="Grid view"
-                  >
-                    <ViewGridIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => toggleView('list')}
-                    className={`p-1.5 rounded ${view === 'list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
-                    aria-label="List view"
-                  >
-                    <ViewListIcon className="h-5 w-5" />
-                  </button>
-                </div>
-                <button 
-                  onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          </div>
+
+          <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+            {/* Active filters badges with clear ability */}
+            {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm.trim() !== '' || activeFilter !== 'all' || !showOnlyMyVideos) && (
+              <div className="mt-4 flex flex-wrap gap-2 items-center">
+                <span className="text-sm font-medium text-gray-700 mr-2">Active filters:</span>
+                
+                {searchTerm.trim() !== '' && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                    Search: {searchTerm}
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
+                    >
+                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </span>
+                )}
+                
+                {durationFilter !== 'all' && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                    Duration: {durationFilter === 'short' ? 'Short (<5 min)' : durationFilter === 'medium' ? 'Medium (5-20 min)' : 'Long (>20 min)'}
+                    <button
+                      type="button"
+                      onClick={() => setDurationFilter('all')}
+                      className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
+                    >
+                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </span>
+                )}
+                
+                {selectedCategories.map(category => (
+                  <span key={category} className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                    {category}
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(category)}
+                      className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
+                    >
+                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </span>
+                ))}
+                
+                {!showOnlyMyVideos && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                    All System Videos
+                    <button
+                      type="button"
+                      onClick={() => setShowOnlyMyVideos(true)}
+                      className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
+                    >
+                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </span>
+                )}
+                
+                <button
+                  onClick={resetAllFilters}
+                  className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
                 >
-                  {isFilterMenuOpen ? 'Hide Filters' : 'Show Filters'}
-                  <FilterIcon className="ml-2 -mr-0.5 h-4 w-4" />
+                  Reset All
+                  <XCircleIcon className="ml-1.5 h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                {isFilterMenuOpen ? 'Hide Filters' : 'Show Filters'}
+                <FilterIcon className="ml-2 -mr-0.5 h-4 w-4" />
+              </button>
+              
+              <div className="inline-flex rounded-md shadow-sm">
+                <button
+                  onClick={() => setView('grid')}
+                  className={`inline-flex items-center px-4 py-2 border border-r-0 border-gray-300 text-sm font-medium rounded-l-md ${
+                    view === 'grid' ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-gray-700 hover:bg-gray-50'
+                  } focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
+                >
+                  <ViewGridIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setView('list')}
+                  className={`inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-r-md ${
+                    view === 'list' ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-gray-700 hover:bg-gray-50'
+                  } focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
+                >
+                  <ViewListIcon className="h-5 w-5" />
                 </button>
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm text-gray-600">
-            <div>
-              {filteredVideos.length} {filteredVideos.length === 1 ? 'video' : 'videos'} found
-            </div>
-            {hasDigestVideos.length > 0 && (
-              <div className="ml-3">
-                Including {hasDigestVideos.length} with digests
-              </div>
-            )}
+        </div>
+        
+        {/* Video Source Filter Chips */}
+        <div className="mt-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Video Source</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowOnlyMyVideos(true)}
+              className={`px-4 py-2 text-sm rounded-md ${
+                showOnlyMyVideos 
+                  ? 'bg-indigo-600 text-white font-medium shadow-sm' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              My Videos
+            </button>
+            <button
+              onClick={() => setShowOnlyMyVideos(false)}
+              className={`px-4 py-2 text-sm rounded-md ${
+                !showOnlyMyVideos 
+                  ? 'bg-indigo-600 text-white font-medium shadow-sm' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All System Videos
+            </button>
           </div>
         </div>
-      </div>
-      
-      <div className="flex">
+
+        {/* Quick Navigation Filter Chips - Horizontal scrollable */}
+        <div className="mt-4 overflow-x-auto pb-2 flex items-center space-x-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+          <button
+            onClick={() => setActiveFilter('all')}
+            className={`whitespace-nowrap px-4 py-2 text-sm rounded-full ${
+              activeFilter === 'all' 
+                ? 'bg-indigo-600 text-white font-medium' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All Videos
+          </button>
+          <button
+            onClick={() => setActiveFilter('popular')}
+            className={`whitespace-nowrap px-4 py-2 text-sm rounded-full ${
+              activeFilter === 'popular' 
+                ? 'bg-indigo-600 text-white font-medium' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Popular Videos
+          </button>
+          <button
+            onClick={() => setActiveFilter('recent')}
+            className={`whitespace-nowrap px-4 py-2 text-sm rounded-full ${
+              activeFilter === 'recent' 
+                ? 'bg-indigo-600 text-white font-medium' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Recently Added
+          </button>
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => {
+                toggleCategory(category);
+                setActiveFilter('category');
+              }}
+              className={`whitespace-nowrap px-4 py-2 text-sm rounded-full ${
+                activeFilter === 'category' && selectedCategories.includes(category)
+                  ? 'bg-indigo-600 text-white font-medium' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
         {/* Left sidebar - matching Digests page style */}
-        <div className={`${isFilterMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg border border-gray-200`}>
-          <div className="p-3 border-b border-gray-100">
-            <h2 className="text-lg font-bold px-2 mb-2 flex items-center">
-              <FilterIcon className="h-5 w-5 mr-2 text-gray-600" />
-              Filters
-            </h2>
-            
-            {/* Search box - styled like Digests page */}
-            <div className="relative mb-4">
-              <input
-                type="text"
-                placeholder="Search videos..."
-                className="w-full pl-3 pr-10 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                id="search-input"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <SearchIcon className="h-4 w-4 text-gray-400" />
+        <div className="flex gap-4">
+          {/* Sidebar for detailed filtering */}
+          <div className={`${isFilterMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg border border-gray-200 sticky top-20 self-start max-h-[calc(100vh-120px)] overflow-y-auto`}>
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Filters</h3>
+                <button
+                  onClick={resetAllFilters}
+                  className="text-sm text-red-600 hover:text-red-800 font-medium"
+                >
+                  Reset All
+                </button>
               </div>
-            </div>
-          </div>
-
-          <div className="p-4">
-            {/* Sort Options */}
-            <div className="mb-4 border-b border-gray-100 pb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sort by:</label>
-              <select
-                onChange={handleSortChange}
-                value={`${sortBy}_${sortOrder}`}
-                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-              >
-                {sortOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Duration Filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <ClockIcon className="h-4 w-4 mr-1 text-gray-500" />
-                Duration
-              </h3>
-              <div className="space-y-2">
-                {durations.map(duration => (
-                  <div key={duration.value} className="flex items-center">
-                    <input
-                      id={`duration-${duration.value}`}
-                      name="duration"
-                      type="radio"
-                      checked={durationFilter === duration.value}
-                      onChange={() => setDurationFilter(duration.value as any)}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label htmlFor={`duration-${duration.value}`} className="ml-2 text-sm text-gray-700 capitalize">
-                      {duration.label}
-                    </label>
+              
+              {/* Search */}
+              <div className="mb-6">
+                <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+                  Search
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
-                ))}
+                  <input
+                    type="text"
+                    id="search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                    placeholder="Search videos"
+                  />
+                </div>
               </div>
-            </div>
+              
+              {/* Sort Options */}
+              <div className="mb-4 border-b border-gray-100 pb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sort by:</label>
+                <select
+                  onChange={handleSortChange}
+                  value={`${sortBy}_${sortOrder}`}
+                  className="w-full border border-gray-200 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                >
+                  {sortOptions.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Categories Filter */}
-            {categories.length > 0 && (
-              <div>
+              {/* Duration Filter */}
+              <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <CollectionIcon className="h-4 w-4 mr-1 text-gray-500" />
-                  Categories
+                  <ClockIcon className="h-4 w-4 mr-1 text-gray-500" />
+                  Duration
                 </h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  {categories.map(category => (
-                    <div key={category} className="flex items-center">
+                <div className="space-y-2">
+                  {durations.map(duration => (
+                    <div key={duration.value} className="flex items-center">
                       <input
-                        id={`category-${category}`}
-                        type="checkbox"
-                        checked={selectedCategories.includes(category)}
-                        onChange={() => toggleCategory(category)}
-                        className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        id={`duration-${duration.value}`}
+                        name="duration"
+                        type="radio"
+                        checked={durationFilter === duration.value}
+                        onChange={() => setDurationFilter(duration.value as any)}
+                        className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                       />
-                      <label htmlFor={`category-${category}`} className="ml-2 text-sm text-gray-700">
-                        {category}
+                      <label htmlFor={`duration-${duration.value}`} className="ml-2 text-sm text-gray-700 capitalize">
+                        {duration.label}
                       </label>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Filter Reset */}
-            {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm) && (
-              <button
-                onClick={() => {
-                  setSelectedCategories([]);
-                  setDurationFilter('all');
-                  setSearchTerm('');
-                }}
-                className="mt-6 w-full py-2 px-3 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 text-gray-700 transition-colors"
-              >
-                Reset Filters
-              </button>
-            )}
-          </div>
-        </div>
+              {/* Categories Filter */}
+              {categories.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <CollectionIcon className="h-4 w-4 mr-1 text-gray-500" />
+                    Categories
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {categories.map(category => (
+                      <div key={category} className="flex items-center">
+                        <input
+                          id={`category-${category}`}
+                          type="checkbox"
+                          checked={selectedCategories.includes(category)}
+                          onChange={() => toggleCategory(category)}
+                          className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        />
+                        <label htmlFor={`category-${category}`} className="ml-2 text-sm text-gray-700">
+                          {category}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-        {/* Main Content Area */}
-        <div className="flex-1 ml-0 md:ml-6">
-          {/* Videos Display */}
-          <div>
-            {currentVideos.length === 0 ? (
-              <EmptyState
-                title="No videos found"
-                description="Try adjusting your search or filters to find what you're looking for."
-                icon={<InformationCircleIcon className="h-12 w-12" />}
-                action={{
-                  label: "Reset Filters",
-                  onClick: () => {
-                    setSearchTerm('');
+              {/* Filter Reset */}
+              {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm) && (
+                <button
+                  onClick={() => {
                     setSelectedCategories([]);
                     setDurationFilter('all');
-                    setSortBy('date_desc');
-                  }
-                }}
-              />
-            ) : (
-              <>
-                {/* Quick browse chips */}
-                {currentPage === 1 && (
-                  <div className="mb-8">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Browse</h2>
-                    <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar" style={{ margin: '-4px' }}>
-                      <button 
-                        onClick={handleShowPopularVideos}
-                        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
-                      >
-                        <span>Popular Videos</span>
-                      </button>
-                      <button 
-                        onClick={handleShowRecentVideos}
-                        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
-                      >
-                        <span>Recently Added</span>
-                      </button>
-                      <button 
-                        onClick={handleShowShortVideos}
-                        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
-                      >
-                        <span>Short Videos</span>
-                      </button>
-                      {categories.slice(0, 5).map(category => (
-                        <button 
-                          key={category}
-                          onClick={() => {
-                            setSelectedCategories([category]);
-                            setCurrentPage(1);
-                          }}
-                          className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
-                        >
-                          <span>{category}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Section for videos with digests */}
-                {hasDigestVideos.length > 0 && (
-                  <div className="mb-10">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                      <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-sm text-sm font-medium mr-3">
-                        Digested
-                      </span>
-                      Videos with Digests
-                    </h2>
-                    
-                    {view === 'grid' ? (
-                      <VideoGrid 
-                        videos={currentPage === 1 ? hasDigestVideos.slice(0, videosPerPage) : []} 
-                        onVideoSelect={handleVideoSelect} 
-                        channels={channels}
-                      />
-                    ) : (
-                      <VideoList 
-                        videos={currentPage === 1 ? hasDigestVideos.slice(0, videosPerPage) : []} 
-                        onVideoSelect={handleVideoSelect} 
-                        channels={channels}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Section for all videos or paginated results */}
-                <div>
-                  {hasDigestVideos.length > 0 && currentPage === 1 && (
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4">All Videos</h2>
-                  )}
-                  
-                  {view === 'grid' ? (
-                    <VideoGrid 
-                      videos={currentVideos} 
-                      onVideoSelect={handleVideoSelect} 
-                      channels={channels}
-                    />
-                  ) : (
-                    <VideoList 
-                      videos={currentVideos} 
-                      onVideoSelect={handleVideoSelect} 
-                      channels={channels}
-                    />
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-center mt-6">
-            <div className="flex space-x-2">
-              <button
-                onClick={() => paginate(1)}
-                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
-              >
-                First
-              </button>
-              <button
-                onClick={() => paginate(currentPage - 1)}
-                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
-              >
-                Prev
-              </button>
-              <span className="px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-100">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => paginate(currentPage + 1)}
-                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => paginate(totalPages)}
-                className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50"
-              >
-                Last
-              </button>
+                    setSearchTerm('');
+                  }}
+                  className="mt-6 w-full py-2 px-3 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+                >
+                  Reset Filters
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 ml-0 md:ml-6">
+            {/* Videos Display */}
+            <div>
+              {currentVideos.length === 0 ? (
+                <EmptyState
+                  title="No videos found"
+                  description="Try adjusting your search or filters to find what you're looking for."
+                  icon={<InformationCircleIcon className="h-12 w-12" />}
+                  action={{
+                    label: "Reset Filters",
+                    onClick: () => {
+                      setSearchTerm('');
+                      setSelectedCategories([]);
+                      setDurationFilter('all');
+                      setSortBy('date_desc');
+                    }
+                  }}
+                />
+              ) : (
+                <>
+                  {/* Quick browse chips */}
+                  {currentPage === 1 && (
+                    <div className="mb-6">
+                      <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar mt-2" style={{ margin: '-4px' }}>
+                        <button 
+                          onClick={handleShowPopularVideos}
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
+                        >
+                          <span>Popular Videos</span>
+                        </button>
+                        <button 
+                          onClick={handleShowRecentVideos}
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
+                        >
+                          <span>Recently Added</span>
+                        </button>
+                        <button 
+                          onClick={handleShowShortVideos}
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
+                        >
+                          <span>Short Videos</span>
+                        </button>
+                        {categories.slice(0, 5).map(category => (
+                          <button 
+                            key={category}
+                            onClick={() => {
+                              setSelectedCategories([category]);
+                              setCurrentPage(1);
+                            }}
+                            className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 hover:bg-gray-200 whitespace-nowrap flex-shrink-0 m-1"
+                          >
+                            <span>{category}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Main content organization - Logic based on filtering */}
+                  {showingFilteredResults ? (
+                    /* When filter is active, show filtered results */
+                    <div className="mb-10">
+                      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                        Filtered Results <span className="text-sm text-gray-500 ml-2">({getActiveFilterDescription()})</span>
+                      </h2>
+                      {view === 'grid' ? (
+                        <VideoGrid videos={currentVideos} onVideoSelect={handleVideoSelect} channels={channels} />
+                      ) : (
+                        <VideoList videos={currentVideos} onVideoSelect={handleVideoSelect} channels={channels} />
+                      )}
+                    </div>
+                  ) : (
+                    /* Regular view with better organization */
+                    <>
+                      {/* Videos with digests section */}
+                      {hasDigestVideos.length > 0 && (
+                        <div className="mb-10">
+                          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-sm text-sm font-medium mr-3">
+                              Digested
+                            </span>
+                            Ready to Read
+                          </h2>
+                          {view === 'grid' ? (
+                            <VideoGrid videos={hasDigestVideos.slice(0, 10)} onVideoSelect={handleVideoSelect} channels={channels} />
+                          ) : (
+                            <VideoList videos={hasDigestVideos.slice(0, 10)} onVideoSelect={handleVideoSelect} channels={channels} />
+                          )}
+                          {hasDigestVideos.length > 10 && (
+                            <div className="mt-4 text-right">
+                              <button 
+                                onClick={() => {
+                                  setFilteredVideos(hasDigestVideos);
+                                  setCurrentPage(1);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                              >
+                                View all {hasDigestVideos.length} digested videos →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Videos without digests section */}
+                      {noDigestVideos.length > 0 && (
+                        <div className="mb-10">
+                          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-sm text-sm font-medium mr-3">
+                              Pending
+                            </span>
+                            Waiting for Digest
+                          </h2>
+                          {view === 'grid' ? (
+                            <VideoGrid videos={noDigestVideos.slice(0, 10)} onVideoSelect={handleVideoSelect} channels={channels} />
+                          ) : (
+                            <VideoList videos={noDigestVideos.slice(0, 10)} onVideoSelect={handleVideoSelect} channels={channels} />
+                          )}
+                          {noDigestVideos.length > 10 && (
+                            <div className="mt-4 text-right">
+                              <button 
+                                onClick={() => {
+                                  setFilteredVideos(noDigestVideos);
+                                  setCurrentPage(1);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                              >
+                                View all {noDigestVideos.length} pending videos →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Pagination control */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex justify-center">
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm" aria-label="Pagination">
+                        <button
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
+                          className={`relative inline-flex items-center px-3 py-2 rounded-l-md border ${
+                            currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="sr-only">Previous</span>
+                          <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                        </button>
+                        
+                        {/* Only show at most 5 page numbers, with ellipsis if needed */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          // Logic to show pages around current page
+                          let pageToShow;
+                          if (totalPages <= 5) {
+                            // If 5 or fewer pages, show all pages
+                            pageToShow = i + 1;
+                          } else if (currentPage <= 3) {
+                            // If near start, show first 5 pages
+                            pageToShow = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            // If near end, show last 5 pages
+                            pageToShow = totalPages - 4 + i;
+                          } else {
+                            // Show 2 before and 2 after current page
+                            pageToShow = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <button
+                              key={pageToShow}
+                              onClick={() => setCurrentPage(pageToShow)}
+                              className={`relative inline-flex items-center px-4 py-2 border ${
+                                pageToShow === currentPage ? 'bg-indigo-50 text-indigo-600 z-10' : 'bg-white text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              {pageToShow}
+                            </button>
+                          );
+                        })}
+                        
+                        <button
+                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          disabled={currentPage === totalPages}
+                          className={`relative inline-flex items-center px-3 py-2 rounded-r-md border ${
+                            currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="sr-only">Next</span>
+                          <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                        </button>
+                      </nav>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Keyboard Shortcuts Help */}
+            <KeyboardShortcutsHelp
+              shortcuts={[
+                { key: '?', description: 'Show keyboard shortcuts', category: 'General' },
+                { key: 'g', description: 'Switch to grid view', category: 'Navigation' },
+                { key: 'l', description: 'Switch to list view', category: 'Navigation' },
+                { key: 's', description: 'Focus search box', category: 'Search & Filter' },
+                { key: 'f', description: 'Toggle filter menu', category: 'Search & Filter' },
+                { key: '←', description: 'Previous page', category: 'Pagination' },
+                { key: '→', description: 'Next page', category: 'Pagination' },
+              ]}
+            />
+          </div>
         </div>
+
       </div>
 
-      {/* Keyboard Shortcuts Help */}
-      <KeyboardShortcutsHelp
-        shortcuts={[
-          { key: '?', description: 'Show keyboard shortcuts', category: 'General' },
-          { key: 'g', description: 'Switch to grid view', category: 'Navigation' },
-          { key: 'l', description: 'Switch to list view', category: 'Navigation' },
-          { key: 's', description: 'Focus search box', category: 'Search & Filter' },
-          { key: 'f', description: 'Toggle filter menu', category: 'Search & Filter' },
-          { key: '←', description: 'Previous page', category: 'Pagination' },
-          { key: '→', description: 'Next page', category: 'Pagination' },
-        ]}
-      />
     </MainLayout>
   );
 }
