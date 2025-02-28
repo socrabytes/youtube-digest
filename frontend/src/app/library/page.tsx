@@ -24,7 +24,8 @@ import {
   InformationCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  XCircleIcon
+  XCircleIcon,
+  VideoCameraIcon
 } from '@heroicons/react/outline';
 import MainLayout from '@/components/layout/MainLayout';
 
@@ -44,7 +45,7 @@ export default function LibraryPage() {
   const [durationFilter, setDurationFilter] = useState<'all' | 'short' | 'medium' | 'long'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'views'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [showOnlyMyVideos, setShowOnlyMyVideos] = useState(true); // Default to showing only user's videos
+  const [showOnlyMyVideos, setShowOnlyMyVideos] = useState(false); // Default to showing all system videos
   const [activeFilter, setActiveFilter] = useState('all');
 
   const categories = React.useMemo(() => {
@@ -342,7 +343,7 @@ export default function LibraryPage() {
     setSearchTerm('');
     setSelectedCategories([]);
     setDurationFilter('all');
-    setShowOnlyMyVideos(true);
+    setShowOnlyMyVideos(false);
     setActiveFilter('all');
     setSortBy('date');
     setSortOrder('desc');
@@ -378,6 +379,36 @@ export default function LibraryPage() {
   return (
     <MainLayout>
       <div className="py-5">
+        {/* Hero Section - Random Digests Feature */}
+        <div className="mb-6 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 shadow-sm">
+          <h2 className="text-lg font-medium text-gray-900 mb-2">Discover New Content</h2>
+          <div className="flex overflow-x-auto gap-4 pb-2">
+            {videos.slice(0, 4).map((video) => (
+              <div 
+                key={video.id}
+                className="flex-shrink-0 w-64 bg-white rounded-md shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleVideoSelect(video)}
+              >
+                <div className="relative">
+                  <img 
+                    src={video.thumbnail_url || '/placeholder-thumbnail.jpg'} 
+                    alt={video.title} 
+                    className="w-full h-36 object-cover"
+                  />
+                  {video.has_digest && (
+                    <div className="absolute top-2 right-2 bg-indigo-600 text-white text-xs px-2 py-0.5 rounded">
+                      Digest
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{video.title}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
@@ -386,9 +417,11 @@ export default function LibraryPage() {
             <p className="mt-1 text-sm text-gray-500">
               Browse your personal collection of videos, create digests from new content, or review your existing digests.
             </p>
-            <div className="mt-2 text-sm text-gray-500">
-              {videos.length} videos found
-              {hasDigestVideos.length > 0 && ` • Including ${hasDigestVideos.length} with digests`}
+            <div className="mt-2 flex items-center text-sm text-gray-500">
+              <VideoCameraIcon className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" aria-hidden="true" />
+              <span>
+                {videos.length} {videos.length === 1 ? 'video' : 'videos'} found
+              </span>
             </div>
           </div>
 
@@ -437,12 +470,12 @@ export default function LibraryPage() {
                   </span>
                 ))}
                 
-                {!showOnlyMyVideos && (
+                {showOnlyMyVideos && (
                   <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
-                    All System Videos
+                    My Videos
                     <button
                       type="button"
-                      onClick={() => setShowOnlyMyVideos(true)}
+                      onClick={() => setShowOnlyMyVideos(false)}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
                       <XIcon className="h-4 w-4" aria-hidden="true" />
@@ -494,26 +527,22 @@ export default function LibraryPage() {
         {/* Video Source Filter Chips */}
         <div className="mt-4">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Video Source</h3>
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 overflow-x-auto pb-2">
             <button
-              onClick={() => setShowOnlyMyVideos(true)}
-              className={`px-4 py-2 text-sm rounded-md ${
-                showOnlyMyVideos 
-                  ? 'bg-indigo-600 text-white font-medium shadow-sm' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                !showOnlyMyVideos ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
               }`}
-            >
-              My Videos
-            </button>
-            <button
               onClick={() => setShowOnlyMyVideos(false)}
-              className={`px-4 py-2 text-sm rounded-md ${
-                !showOnlyMyVideos 
-                  ? 'bg-indigo-600 text-white font-medium shadow-sm' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
             >
               All System Videos
+            </button>
+            <button
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
+                showOnlyMyVideos ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+              onClick={() => setShowOnlyMyVideos(true)}
+            >
+              My Videos
             </button>
           </div>
         </div>
@@ -550,37 +579,24 @@ export default function LibraryPage() {
           >
             Recently Added
           </button>
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => {
-                toggleCategory(category);
-                setActiveFilter('category');
-              }}
-              className={`whitespace-nowrap px-4 py-2 text-sm rounded-full ${
-                activeFilter === 'category' && selectedCategories.includes(category)
-                  ? 'bg-indigo-600 text-white font-medium' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
         </div>
 
-        {/* Left sidebar - matching Digests page style */}
-        <div className="flex gap-4">
-          {/* Sidebar for detailed filtering */}
-          <div className={`${isFilterMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-64 lg:w-72 flex-shrink-0 bg-white rounded-lg border border-gray-200 sticky top-20 self-start max-h-[calc(100vh-120px)] overflow-y-auto`}>
+        {/* Main content grid with sidebar layout - modified for narrower sidebar */}
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          {/* Sidebar filters - reduced width */}
+          <div className="col-span-12 lg:col-span-2 bg-white rounded-lg shadow-sm p-4 h-fit">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Filters</h3>
-                <button
-                  onClick={resetAllFilters}
-                  className="text-sm text-red-600 hover:text-red-800 font-medium"
-                >
-                  Reset All
-                </button>
+                {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm.trim() !== '' || activeFilter !== 'all' || !showOnlyMyVideos) && (
+                  <button
+                    onClick={resetAllFilters}
+                    className="text-xs text-red-600 hover:text-red-800 flex items-center"
+                  >
+                    Reset
+                    <XCircleIcon className="ml-1 h-4 w-4" />
+                  </button>
+                )}
               </div>
               
               {/* Search */}
@@ -642,32 +658,6 @@ export default function LibraryPage() {
                 </div>
               </div>
 
-              {/* Categories Filter */}
-              {categories.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                    <CollectionIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    Categories
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    {categories.map(category => (
-                      <div key={category} className="flex items-center">
-                        <input
-                          id={`category-${category}`}
-                          type="checkbox"
-                          checked={selectedCategories.includes(category)}
-                          onChange={() => toggleCategory(category)}
-                          className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                        />
-                        <label htmlFor={`category-${category}`} className="ml-2 text-sm text-gray-700">
-                          {category}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Filter Reset */}
               {(selectedCategories.length > 0 || durationFilter !== 'all' || searchTerm) && (
                 <button
@@ -685,7 +675,7 @@ export default function LibraryPage() {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 ml-0 md:ml-6">
+          <div className="col-span-12 lg:col-span-10">
             {/* Videos Display */}
             <div>
               {currentVideos.length === 0 ? (
