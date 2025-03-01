@@ -304,6 +304,7 @@ async def create_video(
             existing_video.like_count = video_info.get('like_count')
             existing_video.tags = video_info.get('tags', [])
             existing_video.categories = video_info.get('categories', [])
+            existing_video.chapters = video_info.get('chapters')
             existing_video.upload_date = video_info.get('upload_date')
             existing_video.channel_id = channel.id
             existing_video.processed = False  # Reset processed flag for re-processing
@@ -324,6 +325,7 @@ async def create_video(
                 description=video_info.get('description', ''),
                 tags=video_info.get('tags', []),
                 categories=video_info.get('categories', []),
+                chapters=video_info.get('chapters'),
                 channel_id=channel.id,
                 upload_date=video_info.get('upload_date'),
                 processed=False,
@@ -432,7 +434,7 @@ async def list_videos(
         # Get the latest digest for each video
         latest_digests = {}
         if video_ids:
-            # Use a subquery to get the latest digest for each video
+            # Use a subquery to get the latest digest for each video_id
             from sqlalchemy import func
             
             # Get the maximum generated_at timestamp for each video_id

@@ -12,6 +12,66 @@ import { api } from '@/services/api';
 import type { Video, Channel } from '@/types/video';
 import { ArrowLeftIcon } from '@heroicons/react/outline';
 
+const formatTimeToYouTubeTimestamp = (videoId: string, seconds: number): string => {
+  return `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(seconds)}s`;
+};
+
+const formatSummaryToStructure = (summary: string): { 
+  keyTakeaways: string[],
+  whyWatch: string[],
+  summaryText: string 
+} => {
+  // Basic parsing for now - in a real implementation, we would use a more robust parsing approach
+  // or have the backend return a structured format
+  const keyTakeawaysMatch = summary.match(/Key Takeaways:([\s\S]*?)(?=\n\n|$)/i);
+  const whyWatchMatch = summary.match(/Why Watch:([\s\S]*?)(?=\n\n|$)/i);
+  
+  const keyTakeaways = keyTakeawaysMatch 
+    ? keyTakeawaysMatch[1]
+        .split('\n')
+        .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'))
+        .map(line => line.trim().replace(/^[-•]\s*/, ''))
+    : [];
+    
+  const whyWatch = whyWatchMatch
+    ? whyWatchMatch[1]
+        .split('\n')
+        .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'))
+        .map(line => line.trim().replace(/^[-•]\s*/, ''))
+    : [];
+    
+  // Full summary text with the structured parts removed
+  let summaryText = summary;
+  if (keyTakeawaysMatch) {
+    summaryText = summaryText.replace(keyTakeawaysMatch[0], '');
+  }
+  if (whyWatchMatch) {
+    summaryText = summaryText.replace(whyWatchMatch[0], '');
+  }
+  
+  return {
+    keyTakeaways,
+    whyWatch,
+    summaryText: summaryText.trim()
+  };
+};
+
+const renderMarkdown = (text: string): { __html: string } => {
+  try {
+    // Simple markdown conversion - you might want to use a library like marked
+    let html = text
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    return { __html: `<p>${html}</p>` };
+  } catch (error) {
+    console.error('Error rendering markdown:', error);
+    return { __html: `<p>${text}</p>` };
+  }
+};
+
 export default function DigestsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -118,9 +178,12 @@ export default function DigestsPage() {
       const newVideo = data.find(v => v.id === digestResponse.video_id);
       if (newVideo) {
         setSelectedVideo(newVideo);
+        // Update the URL to reflect the selected video
+        router.push(`/digests?video=${newVideo.id}`, { scroll: false });
       } else if (data.length > 0) {
         // Fallback to the first video if we can't find the new one
         setSelectedVideo(data[0]);
+        router.push(`/digests?video=${data[0].id}`, { scroll: false });
       }
     } catch (err: any) {
       console.error('Error creating digest:', err);
@@ -183,32 +246,6 @@ export default function DigestsPage() {
     } catch (e) {
       return "Unknown";
     }
-  };
-
-  // Simple markdown renderer using HTML
-  const renderMarkdown = (text: string) => {
-    // Replace headers
-    let html = text
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mt-5 mb-3">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>');
-    
-    // Replace bold and italic
-    html = html
-      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/gim, '<em>$1</em>');
-    
-    // Replace lists
-    html = html
-      .replace(/^\s*\d+\.\s+(.*$)/gim, '<li class="ml-6 list-decimal">$1</li>')
-      .replace(/^\s*[\-\*]\s+(.*$)/gim, '<li class="ml-6 list-disc">$1</li>');
-    
-    // Replace paragraphs (must be done last)
-    html = html
-      .replace(/\n\n/gim, '</p><p class="mb-4">')
-      .replace(/\n/gim, '<br>');
-    
-    return { __html: `<p class="mb-4">${html}</p>` };
   };
 
   const filteredVideos = videos.filter(video => 
@@ -549,11 +586,73 @@ export default function DigestsPage() {
                 )}
               </div>
 
-              {/* Digest Content - Now more prominent */}
+              {/* Digest Content - Now more structured with chapters */}
               <div className="bg-white p-6 rounded-lg shadow-sm">
                 <h3 className="font-semibold text-xl mb-4 text-indigo-800">Digest</h3>
                 {selectedVideo.summary ? (
-                  <div className="prose max-w-none" dangerouslySetInnerHTML={renderMarkdown(selectedVideo.summary)} />
+                  <div className="space-y-6">
+                    {/* Structured summary display */}
+                    {(() => {
+                      const { keyTakeaways, whyWatch, summaryText } = formatSummaryToStructure(selectedVideo.summary);
+                      
+                      return (
+                        <>
+                          {/* Key Takeaways Section */}
+                          {keyTakeaways.length > 0 && (
+                            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                              <h4 className="font-medium text-indigo-800 mb-2">Key Takeaways</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {keyTakeaways.map((point, idx) => (
+                                  <li key={idx} className="text-gray-700">{point}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {/* Why Watch Section */}
+                          {whyWatch.length > 0 && (
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                              <h4 className="font-medium text-green-800 mb-2">Why Watch</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {whyWatch.map((point, idx) => (
+                                  <li key={idx} className="text-gray-700">{point}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {/* Chapters Section */}
+                          {selectedVideo.chapters && selectedVideo.chapters.length > 0 && (
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                              <h4 className="font-medium text-blue-800 mb-2">Chapters</h4>
+                              <div className="space-y-2">
+                                {selectedVideo.chapters.map((chapter, idx) => (
+                                  <div key={idx} className="flex items-start">
+                                    <a 
+                                      href={formatTimeToYouTubeTimestamp(selectedVideo.youtube_id, chapter.start_time)} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="inline-block py-1 px-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                    >
+                                      {chapter.timestamp}
+                                    </a>
+                                    <span className="ml-2 text-gray-700">{chapter.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Summary Text */}
+                          {summaryText && (
+                            <div className="prose max-w-none">
+                              <div dangerouslySetInnerHTML={renderMarkdown(summaryText)} />
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                 ) : (
                   <div className="bg-gray-50 p-4 rounded border border-gray-200 text-gray-500">
                     <p>No digest available for this video.</p>
