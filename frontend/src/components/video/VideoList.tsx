@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Video } from '@/types/video';
 import { formatDuration, formatViews, formatDate } from '@/utils/format';
-import { DocumentTextIcon } from '@heroicons/react/outline';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 
 type VideoListProps = {
   videos: Video[];

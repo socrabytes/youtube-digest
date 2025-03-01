@@ -27,7 +27,7 @@ class DigestCreate(DigestBase):
 
 class DigestResponse(DigestBase):
     id: int
-    digest: Optional[str] = None
+    content: Optional[str] = None
     tokens_used: Optional[int] = None
     cost: Optional[float] = None
     model_version: Optional[str] = None
@@ -86,7 +86,7 @@ async def generate_digest_background(digest_id: int):
             result = summarizer.generate(transcript.content)
             
             # Update the digest
-            digest.digest = result["summary"]
+            digest.content = result["summary"]
             digest.tokens_used = result["usage"]["total_tokens"]
             digest.cost = result["usage"]["estimated_cost_usd"]
             digest.model_version = "gpt-4-0125-preview"  # This should come from the summarizer
@@ -181,7 +181,7 @@ async def create_digest(
             DigestModel.digest_type == digest.digest_type
         ).first()
         
-        if existing_digest and existing_digest.digest:
+        if existing_digest and existing_digest.content:
             logger.info(f"Using existing digest for video ID: {digest.video_id}")
             return existing_digest
         
@@ -229,7 +229,7 @@ async def create_digest(
             user_id=digest.user_id,
             digest_type=digest.digest_type,
             llm_id=digest.llm_id,
-            digest="",  # Empty digest initially
+            content="",  # Empty digest initially
             tokens_used=0,
             cost=0.0,
             model_version="pending",
@@ -304,7 +304,7 @@ async def create_video_digest(
             user_id=digest_create.user_id,
             digest_type=digest_create.digest_type,
             llm_id=digest_create.llm_id,
-            digest="",  # Empty digest initially
+            content="",  # Empty digest initially
             tokens_used=0,
             cost=0.0,
             model_version="pending",

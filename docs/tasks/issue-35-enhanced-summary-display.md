@@ -22,7 +22,35 @@ The enhanced summary display will leverage structured data from videos including
 
 ## Recent Fixes
 
-### 2025-03-01: Fixed Thumbnails and Navigation
+### 2025-03-01: Fixed API field mapping and dependency issues
+
+- ✅ **Database Schema Alignment**:
+  - Fixed mismatch between database column name (`content`) and model field (`digest`)
+  - Updated API endpoints to use consistent field references
+  - Ensured proper field mapping between database and API responses
+  - Applied field mapping strategy for API compatibility
+
+- ✅ **Frontend Dependency Updates**:
+  - Updated Heroicons from v1 to v2.1.1
+  - Fixed all icon references to use new naming conventions (e.g., `SearchIcon` → `MagnifyingGlassIcon`)
+  - Resolved undefined component errors in React components
+  - Ensured consistent styling across the application
+
+- ✅ **API Response Consistency**:
+  - Standardized field naming (`digest` in API, `content` in database)
+  - Maintained backward compatibility with existing API consumers
+  - Enhanced debugging capabilities by ensuring proper error messages
+
+These fixes resolved the API connection issues and frontend rendering problems, ensuring that the application functions correctly with the updated dependencies and database schema.
+
+### 2025-03-01: Fixed Thumbnails, Navigation, and Chapter Extraction
+
+- ✅ **Chapter Extraction**:
+  - Implemented proper extraction and storage of video chapters
+  - Added TypeScript interface for structured chapter data
+  - Chapters now include start_time, end_time, title, and timestamp
+  - Successfully rendering chapters for videos that provide them
+  - Added support for timestamp-based navigation within chapters
 
 - ✅ **Thumbnail Display**:
   - Fixed thumbnail field mapping between backend and frontend
@@ -35,7 +63,7 @@ The enhanced summary display will leverage structured data from videos including
   - Added router.push() functionality to redirect users to newly created content
   - Improved user experience by eliminating manual navigation after submission
 
-These fixes ensure proper video context presentation (thumbnails) and smoother user workflow when submitting new videos.
+These fixes ensure proper video context presentation (thumbnails), chapter-based content organization, and smoother user workflow when submitting new videos.
 
 ## Key Objectives
 

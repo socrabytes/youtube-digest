@@ -184,7 +184,7 @@ async def process_video_background(video_id: int):
                 # Create new digest
                 digest = DigestModel(
                     video_id=video_id,
-                    digest=summary_result["summary"],
+                    content=summary_result["summary"],
                     digest_type=DigestType.SUMMARY,
                     llm_id=91,  # Default GPT-4 model
                     user_id=1,  # Default user
@@ -391,12 +391,12 @@ async def process_video(
 
         # Check if digest already exists
         existing_digest = db.query(DigestModel).filter(DigestModel.video_id == video_id).first()
-        if existing_digest and existing_digest.digest:
+        if existing_digest and existing_digest.content:
             logger.info(f"Using existing digest for video ID: {video_id}")
             # Map fields for API compatibility
             video.url = video.webpage_url
             video.thumbnail_url = video.thumbnail
-            video.summary = existing_digest.digest
+            video.summary = existing_digest.content
             return video
 
         # Reset error state if retrying
@@ -461,7 +461,7 @@ async def list_videos(
             
             # Add summary from the latest digest if available
             if video.id in latest_digests:
-                video.summary = latest_digests[video.id].digest
+                video.summary = latest_digests[video.id].content
                 
         return videos
     except Exception as e:
@@ -486,7 +486,7 @@ async def get_video(video_id: int, db: Session = Depends(get_db)):
         
         if latest_digest:
             # Map content to summary for API compatibility
-            video.summary = latest_digest.digest
+            video.summary = latest_digest.content
             
         return video
     except HTTPException:
@@ -513,7 +513,7 @@ async def get_video_by_youtube_id(youtube_id: str, db: Session = Depends(get_db)
         
         if latest_digest:
             # Map content to summary for API compatibility
-            video.summary = latest_digest.digest
+            video.summary = latest_digest.content
             
         return video
     except Exception as e:

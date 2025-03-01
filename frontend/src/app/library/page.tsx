@@ -12,21 +12,21 @@ import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { useKeyboardShortcut } from '@/utils/useKeyboardShortcut';
 import KeyboardShortcutsHelp from '@/components/common/KeyboardShortcutsHelp';
 import {
-  FilterIcon,
-  ViewGridIcon,
-  ViewListIcon,
-  SearchIcon,
-  XIcon,
+  AdjustmentsVerticalIcon,
   ChevronDownIcon,
-  ClockIcon,
-  CollectionIcon,
-  AdjustmentsIcon,
-  InformationCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ClockIcon,
+  RectangleStackIcon,
+  FunnelIcon,
+  InformationCircleIcon,
+  MagnifyingGlassIcon,
+  VideoCameraIcon,
+  Squares2X2Icon,
+  Bars4Icon,
   XCircleIcon,
-  VideoCameraIcon
-} from '@heroicons/react/outline';
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 import MainLayout from '@/components/layout/MainLayout';
 
 export default function LibraryPage() {
@@ -439,7 +439,7 @@ export default function LibraryPage() {
                       onClick={() => setSearchTerm('')}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
@@ -452,7 +452,7 @@ export default function LibraryPage() {
                       onClick={() => setDurationFilter('all')}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
@@ -465,7 +465,7 @@ export default function LibraryPage() {
                       onClick={() => toggleCategory(category)}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 ))}
@@ -478,7 +478,7 @@ export default function LibraryPage() {
                       onClick={() => setShowOnlyMyVideos(false)}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
@@ -499,7 +499,7 @@ export default function LibraryPage() {
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 {isFilterMenuOpen ? 'Hide Filters' : 'Show Filters'}
-                <FilterIcon className="ml-2 -mr-0.5 h-4 w-4" />
+                <FunnelIcon className="ml-2 -mr-0.5 h-4 w-4" />
               </button>
               
               <div className="inline-flex rounded-md shadow-sm">
@@ -509,7 +509,7 @@ export default function LibraryPage() {
                     view === 'grid' ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-gray-700 hover:bg-gray-50'
                   } focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
                 >
-                  <ViewGridIcon className="h-5 w-5" />
+                  <Squares2X2Icon className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setView('list')}
@@ -517,7 +517,7 @@ export default function LibraryPage() {
                     view === 'list' ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-gray-700 hover:bg-gray-50'
                   } focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
                 >
-                  <ViewListIcon className="h-5 w-5" />
+                  <Bars4Icon className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -606,7 +606,7 @@ export default function LibraryPage() {
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <input
                     type="text"

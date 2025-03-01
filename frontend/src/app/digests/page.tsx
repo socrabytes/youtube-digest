@@ -10,7 +10,7 @@ import { useKeyboardShortcut } from '@/utils/useKeyboardShortcut';
 import KeyboardShortcutsHelp from '@/components/common/KeyboardShortcutsHelp';
 import { api } from '@/services/api';
 import type { Video, Channel } from '@/types/video';
-import { ArrowLeftIcon } from '@heroicons/react/outline';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const formatTimeToYouTubeTimestamp = (videoId: string, seconds: number): string => {
   return `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(seconds)}s`;
