@@ -1,153 +1,81 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import VideoCard from '@/components/video/VideoCard';
+import LibraryLayout from '@/components/layout/LibraryLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import type { Video } from '@/types/video';
+import { api } from '@/services/api';
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  // Fetch videos when component mounts
-  useEffect(() => {
-    fetchVideos();
-  }, []);
-
-  const fetchVideos = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch videos');
-      }
-      const data = await response.json();
-      setVideos(data);
-    } catch (err) {
-      console.error('Error fetching videos:', err);
-    }
-  };
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setIsSubmitting(true);
 
     try {
       // Create or update the video
-      const createResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      if (!createResponse.ok) {
-        const errorData = await createResponse.json();
-        throw new Error(errorData.detail || 'Failed to create video');
-      }
-
-      const newVideo = await createResponse.json();
-
-      // Update videos list
-      setVideos(prevVideos => {
-        const existingIndex = prevVideos.findIndex(v => v.id === newVideo.id);
-        if (existingIndex >= 0) {
-          // Replace existing video
-          const updatedVideos = [...prevVideos];
-          updatedVideos[existingIndex] = newVideo;
-          return updatedVideos;
-        } else {
-          // Add new video at the beginning
-          return [newVideo, ...prevVideos];
-        }
-      });
-
-      // Clear input after successful submission
+      await api.createDigest(url);
       setUrl('');
-      
-      // Process the video to generate summary
-      const processResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${newVideo.id}/process`, {
-        method: 'POST',
-      });
-
-      if (!processResponse.ok) {
-        const errorData = await processResponse.json();
-        throw new Error(errorData.detail || 'Failed to process video');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      // Refresh the library after adding a new video
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Error creating digest:', err);
+      setError(err.message || 'Failed to process video');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Handler for refreshing a single video
-  const handleVideoRefresh = async (videoId: number) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/videos/${videoId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch video');
-      }
-      const updatedVideo = await response.json();
-      
-      setVideos(prevVideos => 
-        prevVideos.map(v => v.id === videoId ? updatedVideo : v)
-      );
-    } catch (err) {
-      console.error('Error refreshing video:', err);
-    }
+  const handleVideoSelect = (video: Video) => {
+    setSelectedVideo(video);
+    // You could navigate to a detail page or open a modal here
+    console.log('Selected video:', video);
   };
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">YouTube Video Digest</h1>
-        
-        {/* Video Submission Form */}
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 bg-white p-6 rounded-lg shadow-sm">
+          <h1 className="text-2xl font-bold mb-4">YouTube Digest</h1>
+          <p className="mb-6 text-gray-600">
+            Enter a YouTube URL to create a digest of the video content.
+          </p>
+          
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
             <input
-              type="url"
+              type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter YouTube URL"
-              required
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isSubmitting}
             />
             <button
               type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors duration-200 disabled:bg-blue-400"
+              disabled={!url || isSubmitting}
             >
-              {loading ? <LoadingSpinner size="sm" /> : 'Create Digest'}
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <LoadingSpinner size="small" />
+                  <span className="ml-2">Processing...</span>
+                </div>
+              ) : (
+                'Create Digest'
+              )}
             </button>
-          </div>
-          {error && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm font-medium">{error}</p>
-            </div>
-          )}
-        </form>
-
-        {/* Video Grid */}
-        <div className="grid grid-cols-1 gap-6">
-          {videos.map((video) => (
-            <VideoCard
-              key={video.id}
-              video={video}
-              onRefresh={() => handleVideoRefresh(video.id)}
-            />
-          ))}
-          {videos.length === 0 && (
-            <p className="text-center text-gray-500">
-              No videos yet. Add a YouTube URL to create a digest!
-            </p>
-          )}
+          </form>
+          
+          {error && <div className="mt-4 text-red-500">{error}</div>}
         </div>
+
+        <LibraryLayout onVideoSelect={handleVideoSelect} />
       </div>
     </MainLayout>
   );

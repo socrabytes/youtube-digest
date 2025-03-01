@@ -1,11 +1,16 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
@@ -15,13 +20,34 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <h1 className="text-2xl font-bold text-indigo-600">YouTube Digest</h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link href="/" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500">
+              <Link 
+                href="/" 
+                className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+                  pathname === '/' 
+                    ? 'border-indigo-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                }`}
+              >
                 Home
               </Link>
-              <Link href="/library" className="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent">
+              <Link 
+                href="/library" 
+                className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+                  pathname === '/library' 
+                    ? 'border-indigo-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                }`}
+              >
                 Library
               </Link>
-              <Link href="/digests" className="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent">
+              <Link 
+                href="/digests" 
+                className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+                  pathname === '/digests' 
+                    ? 'border-indigo-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                }`}
+              >
                 Digests
               </Link>
             </div>

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import videos
+from app.api.v1.router import api_router
 from app.core.config import settings
 import logging
 import sys
@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(videos.router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():

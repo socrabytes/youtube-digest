@@ -4,12 +4,14 @@ export interface Video {
   id: number;
   youtube_id: string;
   url: string;
+  webpage_url?: string;
   title: string;
   thumbnail_url?: string;
+  thumbnail?: string;
   duration: number;
   view_count?: number;
   subscriber_count?: number;
-  channel_id?: string;
+  channel_id?: number;
   channel_title?: string;
   upload_date?: string;
   like_count?: number;
@@ -20,6 +22,7 @@ export interface Video {
   transcript_source?: 'manual' | 'auto';
   summary?: string;
   processing_status: ProcessingStatus;
+  has_digest?: boolean;
   openai_usage?: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -46,8 +49,20 @@ export interface VideoTimestamp {
   description: string;
 }
 
+export interface Channel {
+  id: number;
+  name: string;
+  youtube_channel_id: string;
+  thumbnail_url?: string;
+  subscriber_count?: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface VideoFilterOptions {
   sortBy: 'date' | 'relevance' | 'views';
   timeRange: 'day' | 'week' | 'month' | 'year' | 'all';
   hasDigest: boolean;
+  category?: string;
 }
