@@ -47,14 +47,14 @@ export const api = {
     return digests.length > 0 ? digests[0] : null;
   },
 
-  async createDigest(videoUrl: string): Promise<any> {
+  async createDigest(videoUrl: string, digestType: string = 'highlights', summaryFormat: string = 'enhanced'): Promise<any> {
     // First, create or get the video
     const videoResponse = await fetch(`${API_BASE_URL}${API_VERSION}/videos/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ url: videoUrl }), // The API is already using the correct field name 'url' which matches the VideoCreate model in the backend
+      body: JSON.stringify({ url: videoUrl }),
     });
     
     if (!videoResponse.ok) {
@@ -64,13 +64,25 @@ export const api = {
     
     const video = await videoResponse.json();
     
+    // Validate digest type against the backend's enum values
+    const validDigestTypes = ['highlights', 'chapters', 'detailed', 'summary'];
+    const normalizedDigestType = digestType.toLowerCase();
+    
+    if (!validDigestTypes.includes(normalizedDigestType)) {
+      throw new Error(`Invalid digest type: ${digestType}. Must be one of: ${validDigestTypes.join(', ')}`);
+    }
+    
     // Then, create a digest for the video
     const digestResponse = await fetch(`${API_BASE_URL}${API_VERSION}/digests/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ video_id: video.id }),
+      body: JSON.stringify({ 
+        video_id: video.id,
+        digest_type: normalizedDigestType,
+        summary_format: summaryFormat
+      }),
     });
     
     if (!digestResponse.ok) {
@@ -124,6 +136,6 @@ export async function getVideo(id: number): Promise<Video> {
   return response.json();
 }
 
-export async function createDigest(url: string): Promise<any> {
-  return api.createDigest(url);
+export async function createDigest(url: string, digestType: string = 'highlights', summaryFormat: string = 'enhanced'): Promise<any> {
+  return api.createDigest(url, digestType, summaryFormat);
 }

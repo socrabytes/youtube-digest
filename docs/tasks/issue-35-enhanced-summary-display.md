@@ -10,7 +10,7 @@ I want an elegant and informative display of video summaries
 So that I can quickly grasp the video content and key points without watching the entire video.
 
 ## Description
-This task involves redesigning how we present video summaries to optimize for quick consumption and decision-making. Rather than displaying summaries as continuous blocks of text, we'll create a structured, scannable format that helps users efficiently extract value from YouTube content and decide whether to invest time in watching the full video.
+This task involves redesigning how we present video summaries to optimize for quick consumption and decision-making. Rather than displaying summaries as continuous blocks of text, we'll create a structured, scannable format that helps users efficiently extract value from YouTube content and decide whether to watch the full video.
 
 ## Technical Context
 This feature builds upon the work completed in:
@@ -21,6 +21,28 @@ This feature builds upon the work completed in:
 The enhanced summary display will leverage structured data from videos including transcripts, chapter information, and metadata to create a more useful and interactive digest experience.
 
 ## Recent Fixes
+
+### 2025-03-01: Fixed Error Handling and Digest Type Validation
+
+- ✅ **Error Handling Improvements**:
+  - Fixed ReferenceError for `selectedVideo` in the `renderMarkdown` function
+  - Modified `renderMarkdown` to accept a videoId parameter instead of relying on global state
+  - Added defensive programming with proper null/undefined checks
+  - Enhanced error handling in digest generation workflow
+
+- ✅ **Digest Type Validation**:
+  - Updated digest type dropdown to match the backend's enum values
+  - Added validation in the API to ensure only valid digest types are submitted
+  - Fixed the PostgreSQL error: "invalid input value for enum digesttype"
+  - Validated digest types against the allowed values: `highlights`, `chapters`, `detailed`, and `summary`
+
+- ✅ **UI Navigation and Refresh Issues**:
+  - Fixed 404 errors during digest generation by correcting URL format
+  - Changed navigation from `/digests/{video_id}` to `/digests?video={video_id}`
+  - Implemented direct state updates to avoid the need for page refreshes
+  - Added automatic video data refresh to display newly generated digests
+
+These improvements ensure a much smoother user experience when generating and viewing digests, with proper error handling and validation at each step.
 
 ### 2025-03-01: Fixed API field mapping and dependency issues
 
@@ -127,6 +149,56 @@ The enhanced summary display will follow this structure:
    - Highlight especially valuable segments
    - Example: _"**If you watch nothing else**, see the live demonstration at 12:45"_
 
+### Enhanced Summary Display Structure
+
+The digest display now supports a more structured format with several distinct sections:
+
+### 1. Ultra-Concise Summary (One-Liner)
+A single sentence that captures the essence of the video.
+```
+Ultra-concise summary: This video provides a comprehensive overview of API authentication methods including Basic Auth, JWT, and OAuth2.
+```
+
+### 2. Key Takeaways
+3-5 bullet points highlighting the most important points from the video.
+```
+Key Takeaways:
+- API authentication is essential for securing access to protected resources
+- JWT provides stateless authentication with signed tokens
+- OAuth2 enables third-party access without sharing passwords
+- Authentication and authorization serve different security purposes
+- Choosing the right authentication method depends on your specific use case
+```
+
+### 3. Why Watch
+Reasons why someone should invest time in watching this video.
+```
+Why Watch:
+- Clear explanations of complex authentication concepts
+- Real-world examples of each authentication method
+- Practical implementation tips for developers
+```
+
+### 4. Section/Topic Breakdown
+A timeline or breakdown of major sections in the video.
+```
+Section Breakdown:
+0:00-0:30: Introduction to API Authentication
+0:30-2:19: Basic Authentication: Username & Password in HTTP Header
+2:19-3:54: API Key Authentication: Unique Keys for API Requests
+3:54-5:40: OAuth Authentication: Third-Party Access with Tokens
+5:40-6:12: Conclusion: Choosing the Right Authentication Method
+```
+
+### 5. Full Narrative Summary
+A more detailed summary of the video content.
+
+### API Notes
+- The frontend expects digest content in markdown format
+- Structure sections with clear headings as shown above
+- The parser can identify various heading formats, but consistent formatting improves accuracy
+- Regular chapters extracted from YouTube will be displayed alongside the digest content
+
 ### Visual Design Principles
 
 - **Typography**: Clear hierarchy with different styles for headings, bullets, and timestamps
@@ -160,6 +232,28 @@ The component will:
 - Extract chapter information from video metadata
 - Generate key takeaways if not already available
 - Format timestamps as clickable links
+
+## Known Issues / Future Improvements
+
+### Digest Type Functionality
+
+- **Note on Digest Type Dropdown**:
+  - Currently, when a digest is generated, all sections of the enhanced markdown are populated regardless of the selected digest type
+  - The backend appears to create a complete digest with all sections despite the digest type selection
+  - Future enhancement: Implement proper filtering based on the selected digest type
+  - Backend may need updates to only return specific digest sections based on the type
+
+### Mobile Responsiveness
+
+- The enhanced summary display should be tested thoroughly on mobile devices
+- Some sections may need to be collapsed by default on smaller screens
+- Typography may need adjustments for improved readability on mobile
+
+### Performance Optimization
+
+- For videos with very long transcripts, consider lazy loading of summary sections
+- Preload key takeaways and ultra-concise summary first
+- Load full narrative summary on demand
 
 ## Technical Considerations
 
