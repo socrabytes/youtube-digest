@@ -9,7 +9,6 @@ import VideoList from '@/components/video/VideoList';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { useKeyboardShortcut } from '@/utils/useKeyboardShortcut';
 import KeyboardShortcutsHelp from '@/components/common/KeyboardShortcutsHelp';
 import {
   AdjustmentsVerticalIcon,
@@ -276,37 +275,53 @@ export default function LibraryPage() {
 
   // Keyboard shortcuts
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-  useKeyboardShortcut('g', () => {
-    setView('grid');
-  });
   
-  useKeyboardShortcut('l', () => {
-    setView('list');
-  });
-  
-  useKeyboardShortcut('f', () => {
-    setIsFilterMenuOpen(!isFilterMenuOpen);
-  });
+  // Set up keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      if (e.target instanceof HTMLInputElement || 
+          e.target instanceof HTMLTextAreaElement ||
+          e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+      
+      const key = e.key.toLowerCase();
+      
+      switch (key) {
+        case 'g':
+          setView('grid');
+          break;
+        case 'l':
+          setView('list');
+          break;
+        case 'f':
+          setIsFilterMenuOpen(!isFilterMenuOpen);
+          break;
+        case 's':
+          const searchInput = document.getElementById('search-input');
+          if (searchInput) {
+            searchInput.focus();
+          }
+          break;
+        case 'arrowright':
+          if (currentPage < totalPages) {
+            paginate(currentPage + 1);
+          }
+          break;
+        case 'arrowleft':
+          if (currentPage > 1) {
+            paginate(currentPage - 1);
+          }
+          break;
+      }
+    };
 
-  useKeyboardShortcut('s', () => {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.focus();
-    }
-  });
-
-  // Hot keys for pagination
-  useKeyboardShortcut('ArrowRight', () => {
-    if (currentPage < totalPages) {
-      paginate(currentPage + 1);
-    }
-  });
-
-  useKeyboardShortcut('ArrowLeft', () => {
-    if (currentPage > 1) {
-      paginate(currentPage - 1);
-    }
-  });
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentPage, totalPages, isFilterMenuOpen]);
 
   const handleShowPopularVideos = () => {
     // Sort by view count and set filter
