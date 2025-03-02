@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:3000")
     
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    GOOGLE_API_KEY: Optional[str] = os.getenv("GOOGLE_API_KEY")
     
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
@@ -26,6 +27,10 @@ class Settings(BaseSettings):
     @property
     def has_openai_key(self) -> bool:
         return bool(self.OPENAI_API_KEY)
+    
+    @property
+    def has_google_key(self) -> bool:
+        return bool(self.GOOGLE_API_KEY)
     
     @property
     def allowed_origins(self) -> List[str]:

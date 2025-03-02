@@ -3,15 +3,20 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.db.database import get_db, SessionLocal
-from app.models.digest import Digest as DigestModel
+from app.models.digest import Digest as DigestModel, DigestType
 from app.models.video import Video as VideoModel
 from app.models.user import User as UserModel
 from app.models.llm import LLM as LLMModel
 from app.models.transcript import Transcript as TranscriptModel
-from app.services.summarizers.openai_summarizer import OpenAISummarizer, SummaryGenerationError
+from app.services.summarizers import (
+    SummaryGenerationError,
+    SummaryFormat
+)
+from app.services.summarizer_factory import get_summarizer, map_digest_type_to_summary_format
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +27,10 @@ class DigestBase(BaseModel):
 
 class DigestCreate(DigestBase):
     user_id: Optional[int] = 1  # Default to user ID 1 if not provided
-    digest_type: str = "summary"  # Default to summary type
+    digest_type: str = DigestType.SUMMARY  # Default to summary type
     llm_id: Optional[int] = None
+    summary_format: str = SummaryFormat.ENHANCED.value  # Default to enhanced format
+    provider: str = "openai"  # Add provider field with default value
 
 class DigestResponse(DigestBase):
     id: int
@@ -39,6 +46,7 @@ class DigestResponse(DigestBase):
     user_id: int
     digest_type: str
     llm_id: Optional[int] = None
+    summary_format: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -81,28 +89,57 @@ async def generate_digest_background(digest_id: int):
                     db.commit()
                     return
             
-            # Generate the digest
-            summarizer = OpenAISummarizer()
-            result = summarizer.generate(transcript.content)
+            # Get the provider from extra_data or use default
+            provider = "openai"  # Default provider
+            if digest.extra_data and "provider" in digest.extra_data:
+                provider = digest.extra_data["provider"].lower()
             
-            # Update the digest
-            digest.content = result["summary"]
-            digest.tokens_used = result["usage"]["total_tokens"]
-            digest.cost = result["usage"]["estimated_cost_usd"]
-            digest.model_version = "gpt-4-0125-preview"  # This should come from the summarizer
+            # Get the summary format from the digest or use the default based on digest type
+            summary_format_str = digest.extra_data.get("summary_format") if digest.extra_data else None
+            
+            if summary_format_str:
+                try:
+                    summary_format = SummaryFormat(summary_format_str)
+                except ValueError:
+                    # Invalid format, fall back to mapping based on digest type
+                    summary_format = map_digest_type_to_summary_format(digest.digest_type)
+            else:
+                # No format specified, use the mapping based on digest type
+                summary_format = map_digest_type_to_summary_format(digest.digest_type)
+                
+            # Get the summarizer based on the provider
+            summarizer = get_summarizer(provider)
+            
+            # Generate the summary
+            logger.info(f"Generating digest for video {video.id} using provider: {provider}")
+            
+            # Extract the transcript content
+            transcript_content = transcript.content
+            
+            # Generate the summary
+            summary_result = summarizer.generate(transcript_content, summary_format)
+            
+            # Update the digest with the summary information
+            digest.content = summary_result["summary"]
+            digest.tokens_used = summary_result["usage"]["total_tokens"]
+            digest.cost = summary_result["usage"]["estimated_cost_usd"]
+            digest.model_version = summarizer.__class__.__name__
             digest.generated_at = datetime.utcnow()
-            digest.extra_data = result["usage"]
+            digest.extra_data = summary_result["usage"]
+            digest.extra_data["summary_format"] = summary_format.value
+            digest.extra_data["provider"] = provider
             
             db.commit()
-            logger.info(f"Successfully generated digest {digest_id}")
+            logger.info(f"Digest {digest_id} for video {video.id} generated successfully")
             
         except SummaryGenerationError as e:
-            logger.error(f"Error generating digest: {str(e)}")
+            logger.error(f"Error generating summary: {str(e)}")
             digest.extra_data = {"error": str(e)}
             db.commit()
-            
-    except Exception as e:
-        logger.error(f"Unexpected error in digest generation: {str(e)}", exc_info=True)
+        except Exception as e:
+            logger.error(f"Unexpected error in digest generation: {str(e)}", exc_info=True)
+            digest.extra_data = {"error": f"Unexpected error: {str(e)}"}
+            db.commit()
     finally:
         db.close()
 
@@ -219,10 +256,23 @@ async def create_digest(
         # If we have an existing digest but it's empty, update it instead of creating a new one
         if existing_digest:
             logger.info(f"Updating existing empty digest for video ID: {digest.video_id}")
+            
+            # Store provider in extra_data if specified
+            if digest.provider and digest.provider != "openai":
+                if not existing_digest.extra_data:
+                    existing_digest.extra_data = {}
+                existing_digest.extra_data["provider"] = digest.provider
+                db.commit()
+                
             # Start background task to generate digest
             background_tasks.add_task(generate_digest_background, existing_digest.id)
             return existing_digest
         
+        # Prepare extra_data with provider if specified
+        extra_data = None
+        if digest.provider and digest.provider != "openai":
+            extra_data = {"provider": digest.provider}
+            
         # Create new digest
         db_digest = DigestModel(
             video_id=digest.video_id,
@@ -233,7 +283,8 @@ async def create_digest(
             tokens_used=0,
             cost=0.0,
             model_version="pending",
-            generated_at=datetime.utcnow()  # Set generated_at to current time
+            generated_at=datetime.utcnow(),  # Set generated_at to current time
+            extra_data=extra_data
         )
         
         db.add(db_digest)
@@ -262,43 +313,58 @@ async def create_video_digest(
         if video is None:
             raise HTTPException(status_code=404, detail="Video not found")
             
-        # Validate user exists
+        # Check if transcript exists and is processed
+        transcript = db.query(TranscriptModel).filter(
+            TranscriptModel.video_id == video_id,
+            TranscriptModel.status == "PROCESSED"
+        ).first()
+        
+        if not transcript:
+            raise HTTPException(status_code=400, detail="No processed transcript available for this video")
+            
+        # Check if digest already exists for this video
+        existing_digest = db.query(DigestModel).filter(
+            DigestModel.video_id == video_id,
+            DigestModel.digest_type == digest_create.digest_type
+        ).first()
+        
+        if existing_digest and existing_digest.content:
+            logger.info(f"Using existing digest for video ID: {video_id}")
+            return existing_digest
+            
+        # Check if user exists
         user = db.query(UserModel).filter(UserModel.id == digest_create.user_id).first()
         if user is None:
-            # Create a default user if none exists
-            default_user = UserModel(
-                id=1,
-                username="default_user",
-                email="default@example.com"
-            )
-            db.add(default_user)
-            db.commit()
-            db.refresh(default_user)
-            user = default_user
+            # Use default user (id=1)
+            digest_create.user_id = 1
             
-        # Validate LLM exists if provided
-        if digest_create.llm_id:
-            llm = db.query(LLMModel).filter(LLMModel.id == digest_create.llm_id).first()
-            if llm is None:
-                raise HTTPException(status_code=404, detail="LLM not found")
-        else:
-            # Get the default LLM if not specified
+        # Get the default LLM if not specified
+        if not digest_create.llm_id:
             default_llm = db.query(LLMModel).first()
             if default_llm:
                 digest_create.llm_id = default_llm.id
-            else:
-                # Create a default LLM if none exists
-                default_llm = LLMModel(
-                    name="gpt-4-0125-preview",
-                    base_cost_per_token=0.00001,
-                    description="OpenAI GPT-4 model"
-                )
-                db.add(default_llm)
+                
+        # If we have an existing digest but it's empty, use it
+        if existing_digest:
+            logger.info(f"Updating existing empty digest for video ID: {video_id}")
+            
+            # Store provider in extra_data if specified
+            if digest_create.provider and digest_create.provider != "openai":
+                if not existing_digest.extra_data:
+                    existing_digest.extra_data = {}
+                existing_digest.extra_data["provider"] = digest_create.provider
                 db.commit()
-                db.refresh(default_llm)
-                digest_create.llm_id = default_llm.id
-        
-        # Create digest
+                
+            # Start background task to generate digest
+            background_tasks.add_task(generate_digest_background, existing_digest.id)
+            return existing_digest
+            
+        # Prepare extra_data with provider if specified
+        extra_data = None
+        if digest_create.provider and digest_create.provider != "openai":
+            extra_data = {"provider": digest_create.provider}
+            
+        # Create new digest
         digest = DigestModel(
             video_id=video_id,
             user_id=digest_create.user_id,
@@ -308,16 +374,18 @@ async def create_video_digest(
             tokens_used=0,
             cost=0.0,
             model_version="pending",
-            generated_at=datetime.utcnow()  # Set generated_at to current time
+            generated_at=datetime.utcnow(),  # Set generated_at to current time
+            extra_data=extra_data
         )
         
         db.add(digest)
         db.commit()
         db.refresh(digest)
         
-        # Start background processing
+        # Start background task to generate digest
         background_tasks.add_task(generate_digest_background, digest.id)
         
         return digest
     except Exception as e:
+        logger.error(f"Error creating digest: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
