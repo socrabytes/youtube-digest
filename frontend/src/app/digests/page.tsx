@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -232,32 +232,31 @@ const renderMarkdown = (text: string, videoId?: string): { __html: string } => {
     const youtubeId = videoId || '';
     
     // Use marked library for robust markdown parsing
-    // Configure marked to handle common GitHub-flavored markdown features
-    marked.setOptions({
-      breaks: true,           // Convert line breaks to <br>
-      gfm: true,              // Use GitHub Flavored Markdown
-      headerIds: true,        // Generate ID attributes for headings
-      mangle: false,          // Don't escape autolinked email addresses
-      sanitize: false,        // Don't sanitize HTML - we trust our content
-      smartLists: true,       // Use smarter list behavior
-    });
+    // In marked v15+, many options were moved to separate packages
+    // Only use the options that are still supported in the core package
     
-    // Process the markdown text
-    let html = marked(text);
+    // Process the markdown text - explicitly cast to string to handle TypeScript errors
+    const parsedHtml: string = marked.parse(text) as string;
     
     // Process YouTube timestamp links with multiple formats
     // Pattern 1: [MM:SS](t=seconds) - Our custom format
-    html = html.replace(/\[(\d+:\d+)\]\(t=(\d+)\)/g, (match, time, seconds) => {
-      return `<a href="https://www.youtube.com/watch?v=${youtubeId}&t=${seconds}" target="_blank" rel="noopener noreferrer" class="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors">${time}</a>`;
-    });
+    const htmlWithCustomLinks = parsedHtml.replace(
+      /\[(\d+:\d+)\]\(t=(\d+)\)/g, 
+      (match: string, time: string, seconds: string): string => {
+        return `<a href="https://www.youtube.com/watch?v=${youtubeId}&t=${seconds}" target="_blank" rel="noopener noreferrer" class="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors">${time}</a>`;
+      }
+    );
     
     // Pattern 2: MM:SS - Convert plain timestamps to links
-    html = html.replace(/(\D|^)((\d{1,2}):(\d{2}))(\D|$)/g, (match, prefix, timeText, minutes, seconds, suffix) => {
-      const totalSeconds = parseInt(minutes) * 60 + parseInt(seconds);
-      if (isNaN(totalSeconds)) return match;
-      
-      return `${prefix}<a href="https://www.youtube.com/watch?v=${youtubeId}&t=${totalSeconds}" target="_blank" rel="noopener noreferrer" class="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors">${timeText}</a>${suffix}`;
-    });
+    const html = htmlWithCustomLinks.replace(
+      /(\D|^)((\d{1,2}):(\d{2}))(\D|$)/g, 
+      (match: string, prefix: string, timeText: string, minutes: string, seconds: string, suffix: string): string => {
+        const totalSeconds = parseInt(minutes) * 60 + parseInt(seconds);
+        if (isNaN(totalSeconds)) return match;
+        
+        return `${prefix}<a href="https://www.youtube.com/watch?v=${youtubeId}&t=${totalSeconds}" target="_blank" rel="noopener noreferrer" class="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors">${timeText}</a>${suffix}`;
+      }
+    );
     
     return { __html: html };
   } catch (error) {
@@ -514,9 +513,19 @@ const extractMarkdownSections = (markdownText: string): {
   };
 };
 
-export default function DigestsPage() {
+// Create a wrapper component that uses useSearchParams
+function DigestsPageContent() {
+  // This component uses useSearchParams and will be wrapped in Suspense
   const searchParams = useSearchParams();
+  
+  // Pass searchParams to the main component
+  return <DigestsPageImpl searchParamsObj={searchParams} />;
+}
+
+// Main component implementation that doesn't directly use useSearchParams
+function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams }) {
   const router = useRouter();
+  const searchParams = searchParamsObj;
   const videoIdParam = searchParams.get('video');
   const urlParam = searchParams.get('url');
   
@@ -727,7 +736,11 @@ export default function DigestsPage() {
         
         // First refresh the videos list to include the new video
         try {
-          const updatedVideos = await api.fetchVideos({ sortBy: 'date', hasDigest: true });
+          const updatedVideos = await api.fetchVideos({ 
+            sortBy: 'date', 
+            hasDigest: true, 
+            timeRange: 'all' // Add required timeRange property
+          });
           setVideos(updatedVideos);
           setAllVideos(updatedVideos);
           console.log('Videos refreshed, found video:', updatedVideos.find(v => v.id === digestResponse.video_id));
@@ -819,7 +832,7 @@ export default function DigestsPage() {
 
   const filteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    video.channel_title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (video.channel_title && video.channel_title.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (video.categories && video.categories.some(category => category.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
@@ -1283,5 +1296,16 @@ export default function DigestsPage() {
         />
       </div>
     </MainLayout>
+  );
+}
+
+// Export a component that wraps the content in Suspense
+export default function DigestsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen">
+      <LoadingSpinner size="large" />
+    </div>}>
+      <DigestsPageContent />
+    </Suspense>
   );
 }
