@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { api } from '@/services/api';
 import type { Video } from '@/types/video';
 import VideoGrid from '@/components/video/VideoGrid';
@@ -28,14 +28,27 @@ import {
 } from '@heroicons/react/24/outline';
 import MainLayout from '@/components/layout/MainLayout';
 
-export default function LibraryPage() {
+// Create a wrapper component that uses useSearchParams
+function LibraryPageContent() {
+  // This component uses useSearchParams and will be wrapped in Suspense
+  const searchParams = useSearchParams();
+  
+  // Rest of the component logic
+
+  // Pass searchParams to the main component
+  return <LibraryPageImpl searchParamsObj={searchParams} />;
+}
+
+// Main component implementation that doesn't directly use useSearchParams
+function LibraryPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams }) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
   const [channels, setChannels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
-  const searchParams = useSearchParams();
+  // Use the searchParams passed as props instead of directly calling useSearchParams()
+  const searchParams = searchParamsObj;
   const router = useRouter();
 
   // Default filter values
@@ -108,7 +121,11 @@ export default function LibraryPage() {
       setLoading(true);
       try {
         const [videosData, channelsData] = await Promise.all([
-          api.fetchVideos({}),
+          api.fetchVideos({
+            sortBy: 'date',
+            timeRange: 'all',
+            hasDigest: false
+          }),
           api.getChannels()
         ]);
         
@@ -155,9 +172,10 @@ export default function LibraryPage() {
     // Filter by categories
     if (selectedCategories.length > 0) {
       result = result.filter(video => {
-        if (!video.categories) return false;
+        // Ensure categories exists and is an array before using includes
+        if (!video.categories || !Array.isArray(video.categories)) return false;
         return selectedCategories.some(category => 
-          video.categories.includes(category)
+          video.categories!.includes(category)
         );
       });
     }
@@ -175,7 +193,10 @@ export default function LibraryPage() {
     
     // Filter by user's videos
     if (showOnlyMyVideos) {
-      result = result.filter(video => video.user_id === 'current_user_id'); // Replace 'current_user_id' with actual user ID
+      // The Video type doesn't have user_id property, so we need to add a proper implementation
+      // For now, we'll comment this out to fix the TypeScript error
+      // TODO: Implement proper user filtering once user authentication is integrated
+      // result = result.filter(video => video.user_id === 'current_user_id');
     }
     
     // Sort videos
@@ -704,7 +725,8 @@ export default function LibraryPage() {
                       setSearchTerm('');
                       setSelectedCategories([]);
                       setDurationFilter('all');
-                      setSortBy('date_desc');
+                      setSortBy('date');
+                      setSortOrder('desc');
                     }
                   }}
                 />
@@ -907,5 +929,16 @@ export default function LibraryPage() {
       </div>
 
     </MainLayout>
+  );
+}
+
+// Export a component that wraps the content in Suspense
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen">
+      <LoadingSpinner size="large" />
+    </div>}>
+      <LibraryPageContent />
+    </Suspense>
   );
 }
