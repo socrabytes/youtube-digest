@@ -54,12 +54,18 @@ def map_digest_type_to_summary_format(digest_type: str) -> SummaryFormat:
     Returns:
         The corresponding SummaryFormat
     """
-    mapping = {
-        "summary": SummaryFormat.STANDARD,
-        "detailed": SummaryFormat.DETAILED,
-        "highlights": SummaryFormat.ENHANCED,
-        "chapters": SummaryFormat.ENHANCED,
-        "concise": SummaryFormat.CONCISE,
-    }
+    # NOTE: Updated to always use the master digest format
+    # In the future, we may want to restore the different formats if needed
     
-    return mapping.get(digest_type, SummaryFormat.ENHANCED)
+    # Old mapping (kept for reference):
+    # mapping = {
+    #     "summary": SummaryFormat.STANDARD,
+    #     "detailed": SummaryFormat.DETAILED,
+    #     "highlights": SummaryFormat.ENHANCED,
+    #     "chapters": SummaryFormat.ENHANCED,
+    #     "concise": SummaryFormat.CONCISE,
+    # }
+    
+    # Always return the master format
+    # We're using ENHANCED as the container for our master prompt
+    return SummaryFormat.ENHANCED

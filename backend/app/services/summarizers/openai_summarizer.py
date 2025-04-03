@@ -145,6 +145,30 @@ class OpenAISummarizer(SummarizerInterface):
             # Get the appropriate prompt for the requested format
             prompt = self.get_prompt_for_format(format_type)
             
+            # Check if we're using the master prompt (which has placeholders)
+            if "{title}" in prompt or "{description}" in prompt or "{chapters_formatted_list}" in prompt:
+                logger.info("Using master digest prompt with placeholder adaption")
+                # Simple adaptation - instead of trying to get all that data, modify the prompt
+                # to work with just the transcript
+                modified_prompt = prompt.replace(
+                    """**Context:**
+Title: {title}
+Description: {description}
+Chapters:
+{chapters_formatted_list} <-- System will provide "None" if not available
+
+**Transcript:**
+{transcript}""",
+                    """**Context:**
+Title: [Title not provided]
+Description: [Description not provided]
+Chapters: None
+
+**Transcript:**
+[Transcript provided in user message]"""
+                )
+                prompt = modified_prompt
+            
             # Prepare messages
             messages = [
                 {"role": "system", "content": prompt},

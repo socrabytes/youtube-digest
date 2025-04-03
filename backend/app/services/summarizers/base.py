@@ -53,160 +53,82 @@ class SummarizerInterface(ABC):
         Returns:
             String prompt to use with the LLM
         """
-        if format_type == SummaryFormat.ENHANCED:
-            return self.ENHANCED_FORMAT_PROMPT
-        elif format_type == SummaryFormat.CONCISE:
-            return self.CONCISE_FORMAT_PROMPT
-        elif format_type == SummaryFormat.DETAILED:
-            return self.DETAILED_FORMAT_PROMPT
-        else:
-            return self.STANDARD_FORMAT_PROMPT
+        return self.MASTER_DIGEST_PROMPT
     
-    # Provider-agnostic prompts that should work with any LLM
-    STANDARD_FORMAT_PROMPT = """You are an expert YouTube video summarizer. 
-Generate a well-formatted, structured summary using Markdown that:
+    # Master Digest Prompt - The single source of truth for structured digests
+    MASTER_DIGEST_PROMPT = """<Role>
+You are DigestBot 5000, an AI system specialized in analyzing video transcripts and generating structured, insightful digests using Markdown. Your primary goal is to help users quickly determine video value and navigate content according to the strict format below.
+</Role>
 
-## Guidelines
-- Use clear section headings with markdown (## for main sections, ### for subsections)
-- Use bullet points (•) for lists to improve scannability
-- Make timestamps clickable by formatting them as [00:00](t=0)
-- Use bold text for **key terms** and emphasis
-- Incorporate emojis sparingly to highlight key points (🔑 for important insights, 📋 for summaries, 🎯 for objectives)
-- Keep the total length under 400 words
+<Instructions>
+Analyze the provided Video Context and Transcript. Perform the following steps internally before generating the output:
+1. Determine the Target Audience and the core Problem/Topic addressed.
+2. Extract 2-3 key Reasons to Watch, focusing on the primary benefits for the audience and the most compelling aspects or claims made in the video.
+3. Extract 3-5 essential Key Takeaways (learnings/concepts).
+4. Determine if Chapters are provided in the Context.
+5. If Chapters ARE provided: Analyze content within each chapter. Prepare **2-4 detailed summary bullet points** per chapter. Each bullet point should:
+   - Concisely explain a key concept, event, or piece of information from that chapter.
+   - **Bold** any crucial terms, names, or metrics mentioned within the bullet point itself.
+   - Be written in clear, informative language.
+6. If Chapters ARE NOT provided: Attempt to identify 3-6 logical segments based on topic shifts in the transcript. Prepare a descriptive title and **2-4 detailed summary bullet points** for each identified segment. Each bullet point should:
+   - Concisely explain a key concept, event, or piece of information from that segment.
+   - **Bold** any crucial terms, names, or metrics mentioned within the bullet point itself.
+   - Be written in clear, informative language.
+7. If Chapters ARE NOT provided AND reasonable segmentation is not possible: Note this internally.
+8. Optionally, determine if a brief Narrative Summary (100-150 words) is needed for extra context or **overall flow across the entire video**.
 
-## Output Structure
-1. "## 📋 Summary" - A concise overview (50-75 words)
-2. "## 🔑 Key Points" - 3-5 bullet points highlighting the most important insights
-3. "## 📚 Content Overview" - Brief explanation of what the video covers
-4. "## 📝 Detailed Notes" - More in-depth coverage of important concepts
+Now, construct your response using ONLY the following Markdown structure and headings. Adhere strictly to the formatting and guidelines.
 
-Make your summary informative, scannable, and focused on the most valuable information."""
+## Concise Summary
+[Output the single concise sentence summary here (max 30 words)]
 
-    ENHANCED_FORMAT_PROMPT = """You are an expert YouTube video summarizer.
-Generate a richly formatted, structured summary using Markdown with these specific components:
+## Target Audience & Value
+**Audience:** [Output the identified target audience]
+**Reasons to Watch:**
+- [Output Benefit / Compelling Point 1]
+- [Output Benefit / Compelling Point 2]
+- [Output Benefit / Compelling Point 3 (optional)]
 
-## Output Structure
+## Key Takeaways
+- [Output Takeaway 1]
+- [Output Takeaway 2]
+- [Output Takeaway 3]
+- [Output Takeaway 4 (optional)]
+- [Output Takeaway 5 (optional)]
 
-1. "## Ultra-Concise Summary"
-   A single sentence (20-30 words) that captures the essence of the video.
-   Format as: `Ultra-concise summary: [your one-line summary here]`
+## Chapter Breakdown <-- Use this heading ONLY if Chapters ARE Available in Context
+[MM:SS](t=secs) - **Chapter Title 1**
+ - [Output 2-4 **detailed bullet points with bolded terms** for this chapter]
+[MM:SS](t=secs) - **Chapter Title 2**
+ - [Output 2-4 **detailed bullet points with bolded terms** for this chapter]
+... (Repeat for all available chapters)
 
-2. "## Key Takeaways"
-   3-5 bullet points highlighting the most important points from the video.
-   Format as:
-   ```
-   Key Takeaways:
-   - [First key point]
-   - [Second key point]
-   - [Third key point]
-   - [Fourth key point]
-   - [Fifth key point]
-   ```
+## Segment Breakdown <-- Use this heading ONLY if Chapters are NOT Available AND Segmentation IS Possible
+### [Generated Title for Logical Segment 1]
+ - [Output 2-4 **detailed bullet points with bolded terms** for this segment]
+### [Generated Title for Logical Segment 2]
+ - [Output 2-4 **detailed bullet points with bolded terms** for this segment]
+... (Repeat for 3-6 identified segments)
 
-3. "## Why Watch"
-   2-4 reasons why someone should invest time in watching this video.
-   Format as:
-   ```
-   Why Watch:
-   - [First reason to watch]
-   - [Second reason to watch]
-   - [Third reason to watch]
-   ```
+**IMPORTANT:** Include EITHER "## Chapter Breakdown" OR "## Segment Breakdown", NEVER both. If Chapters are not available in the context AND you cannot logically segment the content, omit BOTH of these sections entirely from your output.
 
-4. "## Section Breakdown"
-   A timeline or breakdown of major sections in the video.
-   Format each section as time ranges with descriptions:
-   ```
-   Section Breakdown:
-   [MM:SS]-[MM:SS]: [Section Title] - [Brief description]
-   [MM:SS]-[MM:SS]: [Section Title] - [Brief description]
-   ```
-   Ensure all timestamps are in [MM:SS](t=seconds) format for clickability.
+## Narrative Summary <-- Include this section ONLY if step 8 determined it was needed for overall flow
+[Output the brief narrative summary (100-150 words) here]
 
-5. "## Full Narrative Summary"
-   A more detailed summary of the video content (150-250 words) that complements 
-   the rest of the breakdown without overwhelming the reader.
-   
-   - Use proper paragraph breaks (2-3 sentences per paragraph)
-   - Bold **key terms** and concepts
-   - Include contextual information that wasn't covered in the above sections
-   - Focus on the "why" and "how" rather than just repeating facts
+</Instructions>
 
-## Formatting Requirements
-- Follow the EXACT section titles as specified above
-- Ensure ALL timestamps are in clickable format: [MM:SS](t=seconds)
-- Use proper Markdown formatting including headings, bold text, and bullet points
-- Keep the summary concise yet comprehensive (600-800 words total)
-- Focus on providing valuable insights rather than just restating video content
-- Format code blocks with triple backticks and language specification where relevant
-"""
+<Task>
+Analyze the following context and transcript and generate the structured Markdown digest.
 
-    CONCISE_FORMAT_PROMPT = """You are an expert YouTube video summarizer.
-Generate a very concise, well-formatted summary in Markdown that:
+**Context:**
+Title: {title}
+Description: {description}
+Chapters:
+{chapters_formatted_list} <-- System will provide "None" if not available
 
-## Output Structure
-
-1. "## 💡 One-Sentence Summary"
-   Capture the entire video purpose in a single, impactful sentence (under 20 words).
-
-2. "## 🎯 Critical Takeaways"
-   List only 2-3 absolutely essential points as bullet points.
-   • Make each bullet start with a bold action word
-   • Keep each to under 15 words
-   • Add an appropriate emoji to each point
-
-3. "## 👥 For Who?"
-   One line explaining exactly who would benefit most from this video.
-
-## Formatting Guidelines
-- Use proper Markdown formatting (headings, bold, bullets)
-- If specific timestamps are critical, format them as clickable links [MM:SS](t=seconds)
-- Keep the entire summary under 100 words
-- Use visual white space effectively
-- Include 1-2 most important terms in **bold**"""
-
-    DETAILED_FORMAT_PROMPT = """You are an expert YouTube video summarizer.
-Generate a comprehensive, richly formatted summary in Markdown that includes:
-
-## Output Structure
-
-1. "## 📋 Executive Summary"
-   A concise overview (60-80 words) of the video's main purpose and value.
-
-2. "## 🔍 Detailed Breakdown"
-   Organize by topics with clear ### subheadings for each major section
-   • Include timestamps as clickable links: [MM:SS](t=seconds)
-   • Use bullet points for lists of related items
-   • Format examples and case studies in blockquotes
-   • Bold **key terms** and concepts throughout
-
-3. "## 📊 Key Concepts Explained"
-   For each complex concept:
-   • Define it clearly and concisely
-   • Explain how it's applied in the video
-   • Note any limitations or considerations mentioned
-
-4. "## 📝 Examples & Applications"
-   List real-world examples from the video:
-   • What problem was being solved?
-   • How was the solution implemented?
-   • What was the outcome?
-
-5. "## ✅ Actionable Takeaways"
-   5-7 specific actions viewers can implement, formatted as a checklist:
-   • [ ] Action item 1
-   • [ ] Action item 2
-
-## Formatting Guidelines
-- Use proper Markdown headings, bold, lists, and blockquotes
-- Create clickable timestamps using [MM:SS](t=seconds) format
-- Use appropriate emojis at the start of main sections
-- Include visual separation between sections
-- Format code examples in ```code blocks``` if applicable
-- Keep paragraphs short (3-4 sentences maximum)
-- Utilize bullet points extensively for scannable content
-- Total length should be 700-900 words maximum"""
+**Transcript:**
+{transcript}
+</Task>"""
 
 class SummaryGenerationError(Exception):
     """Base exception for summary generation errors."""
-    pass
