@@ -123,9 +123,14 @@ async def generate_digest_background(digest_id: int):
             digest.content = summary_result["summary"]
             digest.tokens_used = summary_result["usage"]["total_tokens"]
             digest.cost = summary_result["usage"]["estimated_cost_usd"]
-            digest.model_version = summarizer.__class__.__name__
+            # Correctly save the actual model name from the result
+            digest.model_version = summary_result["usage"].get("model", "unknown")
             digest.generated_at = datetime.utcnow()
-            digest.extra_data = summary_result["usage"]
+            # Merge usage data into extra_data, preserving existing keys if any
+            if not digest.extra_data:
+                digest.extra_data = {}
+            digest.extra_data.update(summary_result["usage"])
+            # Ensure summary_format and provider are also stored
             digest.extra_data["summary_format"] = summary_format.value
             digest.extra_data["provider"] = provider
             

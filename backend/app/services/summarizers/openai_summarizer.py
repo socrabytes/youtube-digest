@@ -195,7 +195,8 @@ Chapters: None
                     "completion_tokens": response.usage.completion_tokens,
                     "total_tokens": response.usage.total_tokens,
                     "estimated_cost_usd": cost,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "model": response.model  # Add the model name here
                 }
             }
             
