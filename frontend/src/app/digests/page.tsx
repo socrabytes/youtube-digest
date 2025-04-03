@@ -639,6 +639,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   const [activeTab, setActiveTab] = useState(0);
   const videosPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   useEffect(() => {
     // Fetch videos with digests
@@ -869,7 +870,20 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   };
 
   const handleVideoSelect = (video: Video) => {
+    console.log('[DigestsPage] handleVideoSelect called with video:', video.id);
+    
+    // Set the selected video state immediately
     setSelectedVideo(video);
+    
+    // Use Next.js router for navigation (as confirmed in library page)
+    // No need for complex history API or refresh counters
+    try {
+      console.log('[DigestsPage] Attempting router.push...');
+      router.push(`/digests?video=${video.id}`);
+      console.log('[DigestsPage] router.push executed.');
+    } catch (e: unknown) {
+      console.error('[DigestsPage] router.push failed:', e);
+    }
   };
 
   const handleChannelSelect = (channelId: number) => {
@@ -985,7 +999,10 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                 {currentVideos.map((video) => (
                   <button
                     key={video.id}
-                    onClick={() => handleVideoSelect(video)}
+                    onClick={() => {
+                      console.log(`[DigestsPage] Button clicked for video: ${video.id}`)
+                      handleVideoSelect(video)
+                    }}
                     className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors
                       ${selectedVideo?.id === video.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : ''}`}
                   >
@@ -996,13 +1013,21 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                           <img 
                             src={video.thumbnail_url} 
                             alt={video.title} 
-                            className="w-full h-full object-cover" 
+                            className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-xs text-gray-400">No image</span>
-                          </div>
+                          <div className="w-full h-full bg-indigo-900"></div>
                         )}
+                        
+                        {/* Video title and channel overlaid on the thumbnail */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                          <h2 className="text-xl md:text-2xl font-bold mb-2 drop-shadow-md">{video.title}</h2>
+                          <p className="text-sm md:text-base">
+                            {video.channel_title || 
+                              (channels.find(c => c.id === video.channel_id)?.name) || 
+                              'Unknown channel'}
+                          </p>
+                        </div>
                       </div>
                       
                       <div className="overflow-hidden flex-1 min-w-0">
@@ -1156,7 +1181,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                     <>
                       <img 
                         src={selectedVideo.thumbnail_url} 
-                        alt={selectedVideo.title}
+                        alt={selectedVideo.title} 
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-indigo-900/90"></div>
@@ -1420,6 +1445,19 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
               </div>
             </div>
           )}
+          
+          {/* TEMPORARY DEBUG SECTION */}
+          {selectedVideo && selectedVideo.summary && (
+            <details className="mb-4 bg-gray-100 p-2 rounded border">
+              <summary className="cursor-pointer font-medium text-sm text-gray-600">
+                Show Raw Summary (Debug)
+              </summary>
+              <pre className="mt-2 text-xs whitespace-pre-wrap bg-white p-2 border rounded">
+                {selectedVideo.summary}
+              </pre>
+            </details>
+          )}
+          {/* END TEMPORARY DEBUG SECTION */}
         </div>
         
         {/* Keyboard Shortcuts Help */}

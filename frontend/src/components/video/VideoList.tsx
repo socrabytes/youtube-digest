@@ -2,14 +2,17 @@ import React from 'react';
 import type { Video } from '@/types/video';
 import { formatDuration, formatViews, formatDate } from '@/utils/format';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 type VideoListProps = {
   videos: Video[];
   onVideoSelect: (video: Video) => void;
   channels?: any[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
 };
 
-const VideoList: React.FC<VideoListProps> = ({ videos, onVideoSelect, channels = [] }) => {
+const VideoList: React.FC<VideoListProps> = ({ videos, onVideoSelect, channels = [], isLoading = false, onRefresh }) => {
   const getChannelImage = (channelId?: number) => {
     if (!channelId || !channels.length) return null;
     const channel = channels.find(c => c.id === channelId);
@@ -28,6 +31,14 @@ const VideoList: React.FC<VideoListProps> = ({ videos, onVideoSelect, channels =
     
     return 'Unknown channel';
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner text="Loading videos..." />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

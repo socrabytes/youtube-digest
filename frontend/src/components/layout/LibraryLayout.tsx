@@ -97,14 +97,14 @@ const LibraryLayout: React.FC<LibraryLayoutProps> = ({ onVideoSelect }) => {
         <VideoGrid 
           videos={videos} 
           isLoading={isLoading} 
-          onVideoClick={onVideoSelect}
+          onVideoSelect={onVideoSelect}
           onRefresh={handleRefresh}
         />
       ) : (
         <VideoList 
           videos={videos} 
           isLoading={isLoading} 
-          onVideoClick={onVideoSelect}
+          onVideoSelect={onVideoSelect}
           onRefresh={handleRefresh}
         />
       )}

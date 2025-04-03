@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LibraryLayout from '@/components/layout/LibraryLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -12,6 +13,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,11 +21,19 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
-      // Create or update the video
-      await api.createDigest(url);
+      // Create or update the video and get the response
+      const digestResponse = await api.createDigest(url);
       setUrl('');
-      // Refresh the library after adding a new video
-      window.location.reload();
+      
+      // Check if we have a video_id in the response
+      if (digestResponse && digestResponse.video_id) {
+        // Redirect to the digests page with the video ID
+        router.push(`/digests?video=${digestResponse.video_id}`);
+      } else {
+        // Fallback: Reload or redirect to generic digests page if ID is missing
+        console.warn('Digest created, but video_id missing in response. Redirecting to /digests');
+        router.push('/digests');
+      }
     } catch (err: any) {
       console.error('Error creating digest:', err);
       setError(err.message || 'Failed to process video');
@@ -33,9 +43,9 @@ export default function Home() {
   };
 
   const handleVideoSelect = (video: Video) => {
-    setSelectedVideo(video);
-    // You could navigate to a detail page or open a modal here
-    console.log('Selected video:', video);
+    console.log('[HomePage] handleVideoSelect called for video:', video.id);
+    // Navigate to the digest page for this video
+    router.push(`/digests?video=${video.id}`);
   };
 
   return (
