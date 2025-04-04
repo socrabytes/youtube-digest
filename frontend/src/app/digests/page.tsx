@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, Fragment } from 'react';
+import React, { useState, useEffect, useRef, Suspense, Fragment, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -13,598 +13,93 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { marked } from 'marked';
 
+// ... (rest of the code remains the same)
 
-const formatTimeToYouTubeTimestamp = (videoId: string, seconds: number): string => {
-  return `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(seconds)}s`;
-};
-
-const formatSummaryToStructure = (summary: string): {
-  oneLineSummary: string,
-  keyTakeaways: string[],
-  whyWatch: string[],
-  summaryText: string,
-  chapterSummaries: { [chapterTitle: string]: string[] }
-} => {
-  const chapterSummaries: { [key: string]: string[] } = {};
-  
-  // Try to first use the extractMarkdownSections function to get structured data
-  const extracted = extractMarkdownSections(summary);
-  
-  // If we have a structured markdown with sections, use that
-  if (extracted.oneLineSummary || extracted.keyTakeaways.length > 0 || extracted.whyWatch.length > 0) {
-    // Convert extracted chapters to the chapterSummaries format
-    extracted.breakdownItems.forEach(chapter => {
-      const key = `${chapter.timestamp}: ${chapter.title}`;
-      chapterSummaries[key] = chapter.description ? [chapter.description] : [];
-    });
-    
-    return {
-      oneLineSummary: extracted.oneLineSummary,
-      keyTakeaways: extracted.keyTakeaways,
-      whyWatch: extracted.whyWatch,
-      summaryText: extracted.narrativeSummary || summary,
-      chapterSummaries
-    };
-  }
-  
-  // Fall back to the original extraction methods if the markdown isn't structured as expected
-  
-  // Extract one-line summary (often at the beginning)
-  let oneLineSummary = '';
-  
-  // First try to find the ultra-concise summary with a label
-  const ultraConciseMatch = summary.match(/Ultra-concise summary:\s*([^\n]+)/i);
-  if (ultraConciseMatch) {
-    oneLineSummary = ultraConciseMatch[1].trim();
-  } else {
-    // Otherwise use the first paragraph if it's short
-    const firstParagraph = summary.split('\n\n')[0].trim();
-    if (firstParagraph.length < 200 && 
-        !firstParagraph.includes('\n') && 
-        !firstParagraph.startsWith('-') &&
-        !firstParagraph.match(/^Key Takeaway/i)) {
-      oneLineSummary = firstParagraph;
-    }
-  }
-  
-  // Extract key takeaways
-  let keyTakeaways: string[] = [];
-  // Try the formatted version first
-  const formattedTakeawaysMatch = summary.match(/Key Takeaways:\s*([\s\S]*?)(?:\n\n|$)/i);
-  if (formattedTakeawaysMatch) {
-    keyTakeaways = formattedTakeawaysMatch[1]
-      .split('\n')
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().replace(/^-\s*/, ''));
-  }
-  
-  // If that didn't work, try other possible formats
-  if (keyTakeaways.length === 0) {
-    const keyTakeawaysMatch = summary.match(/(?:Key Takeaways?|Key Points?|Main Points?):\s*([\s\S]*?)(?:\n\n|$)/i);
-    if (keyTakeawaysMatch) {
-      keyTakeaways = extractBulletPoints(keyTakeawaysMatch[1]);
-    }
-  }
-  
-  // Extract "why watch" points
-  let whyWatch: string[] = [];
-  // Try the formatted version first
-  const formattedWhyWatchMatch = summary.match(/Why Watch:\s*([\s\S]*?)(?:\n\n|$)/i);
-  if (formattedWhyWatchMatch) {
-    whyWatch = formattedWhyWatchMatch[1]
-      .split('\n')
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().replace(/^-\s*/, ''));
-  }
-  
-  // If that didn't work, try other possible formats
-  if (whyWatch.length === 0) {
-    const whyWatchMatch = summary.match(/(?:Why Watch|Why You Should Watch|Value Proposition):\s*([\s\S]*?)(?:\n\n|$)/i);
-    if (whyWatchMatch) {
-      whyWatch = extractBulletPoints(whyWatchMatch[1]);
-    }
-  }
-  
-  // Helper function to extract bullet points
-  function extractBulletPoints(text: string): string[] {
-    const bulletPointsPattern = /^\s*[•\-*]\s*(.+)$/gm;
-    const points: string[] = [];
-    let match;
-    
-    while ((match = bulletPointsPattern.exec(text)) !== null) {
-      points.push(match[1].trim());
-    }
-    
-    // If no bullet points were found, try to extract sentences
-    if (points.length === 0) {
-      const sentences = text.split(/\.\s+/);
-      for (const sentence of sentences) {
-        const trimmed = sentence.trim();
-        if (trimmed && trimmed.length > 10) {
-          points.push(trimmed + (trimmed.endsWith('.') ? '' : '.'));
-        }
-      }
-    }
-    
-    return points;
-  }
-  
-  // Try to detect timestamps in the "Section Breakdown" format
-  const sectionBreakdownMatch = summary.match(/Section Breakdown:\s*([\s\S]*?)(?:\n\n|$)/i);
-  if (sectionBreakdownMatch) {
-    const sectionContent = sectionBreakdownMatch[1];
-    const sectionRegex = /(\d+:\d+)(?:-(\d+:\d+))?:\s*([^-]+)(?:\s*-\s*(.+?))?(?:\n|$)/g;
-    let sectionMatch;
-    
-    while ((sectionMatch = sectionRegex.exec(sectionContent)) !== null) {
-      const startTime = sectionMatch[1];
-      const title = sectionMatch[3].trim();
-      const description = sectionMatch[4] ? sectionMatch[4].trim() : '';
-      
-      const key = `${startTime}: ${title}`;
-      chapterSummaries[key] = description ? [description] : [];
-    }
-  }
-  
-  // If no section breakdown was found, try other formats for timestamps and sections
-  if (Object.keys(chapterSummaries).length === 0) {
-    // Try to detect timestamps and section titles in the text (like "0:00-3:00: Overview...")
-    const timelineRegex = /(\d+:\d+(?:\s*[-–—]\s*\d+:\d+)?)\s*:?\s*(.+?)(?=\n|$)/gm;
-    let timelineMatch;
-    
-    while ((timelineMatch = timelineRegex.exec(summary)) !== null) {
-      const timeRange = timelineMatch[1].trim();
-      const sectionTitle = timelineMatch[2].trim();
-      
-      if (timeRange && sectionTitle) {
-        chapterSummaries[`${timeRange}: ${sectionTitle}`] = [];
-      }
-    }
-    
-    // Also try to detect chapter titles and their summaries in the text
-    const chapterRegex = /^(Chapter \d+|[\d:]+)\s*[-:]\s*(.+?)(?=\n)/gm;
-    let chapterMatch;
-    let lastChapterTitle = '';
-    
-    while ((chapterMatch = chapterRegex.exec(summary)) !== null) {
-      const chapterTitle = chapterMatch[2].trim();
-      lastChapterTitle = chapterTitle;
-      chapterSummaries[chapterTitle] = [];
-    }
-    
-    // Check for paragraph content after chapter headings
-    if (lastChapterTitle) {
-      const contentAfterLastChapter = summary.slice(chapterRegex.lastIndex);
-      const paragraphs = contentAfterLastChapter
-        .split('\n\n')
-        .map(p => p.trim())
-        .filter(p => p && !p.match(/^(Chapter \d+|[\d:]+)\s*[-:]/));
-      
-      if (paragraphs.length > 0) {
-        chapterSummaries[lastChapterTitle] = extractBulletPoints(paragraphs[0]);
-      }
-    }
-  }
-  
-  // Try to extract full narrative summary
-  let summaryText = summary;
-  const fullSummaryMatch = summary.match(/## (?:Full Narrative Summary|📝 Full Narrative Summary)\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i);
-  
-  if (fullSummaryMatch && fullSummaryMatch[1]) {
-    summaryText = fullSummaryMatch[1].trim();
-  } else {
-    // Clean up the summary text by removing the structured parts we've already extracted
-    const formattedUltraConciseMatch = summary.match(/Ultra-concise summary:.*?\n\n/i);
-    if (formattedUltraConciseMatch) {
-      summaryText = summaryText.replace(formattedUltraConciseMatch[0], '');
-    }
-    
-    if (formattedTakeawaysMatch) {
-      summaryText = summaryText.replace(formattedTakeawaysMatch[0], '');
-    }
-    
-    if (formattedWhyWatchMatch) {
-      summaryText = summaryText.replace(formattedWhyWatchMatch[0], '');
-    }
-    
-    if (sectionBreakdownMatch) {
-      summaryText = summaryText.replace(sectionBreakdownMatch[0], '');
-    }
-    
-    // Remove any remaining section headers
-    summaryText = summaryText.replace(/^## .*$/gm, '');
-  }
-  
-  // Clean up the summary text
-  summaryText = summaryText.trim();
-  
-  return {
-    oneLineSummary,
-    keyTakeaways,
-    whyWatch,
-    summaryText,
-    chapterSummaries
-  };
-};
-
-const renderMarkdown = (text: string, videoId?: string): { __html: string } => {
-  try {
-    // Use the videoId parameter or default to empty string
-    const youtubeId = videoId || '';
-    
-    // Use marked library for robust markdown parsing
-    // In marked v15+, many options were moved to separate packages
-    // Only use the options that are still supported in the core package
-    
-    // Process the markdown text - explicitly cast to string to handle TypeScript errors
-    const parsedHtml: string = marked.parse(text) as string;
-    
-    // Process YouTube timestamp links with multiple formats
-    // Pattern 1: [MM:SS](t=seconds) - Our custom format
-    const htmlWithCustomLinks = parsedHtml.replace(
-      /\[(\d+:\d+)\]\(t=(\d+)\)/g, 
-      (match: string, time: string, seconds: string): string => {
-        return `<a href="https://www.youtube.com/watch?v=${youtubeId}&t=${seconds}" target="_blank" rel="noopener noreferrer" class="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors">${time}</a>`;
-      }
-    );
-    
-    // Pattern 2: MM:SS - Convert plain timestamps to links
-    const html = htmlWithCustomLinks.replace(
-      /(\D|^)((\d{1,2}):(\d{2}))(\D|$)/g, 
-      (match: string, prefix: string, timeText: string, minutes: string, seconds: string, suffix: string): string => {
-        const totalSeconds = parseInt(minutes) * 60 + parseInt(seconds);
-        if (isNaN(totalSeconds)) return match;
-        
-        return `${prefix}<a href="https://www.youtube.com/watch?v=${youtubeId}&t=${totalSeconds}" target="_blank" rel="noopener noreferrer" class="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors">${timeText}</a>${suffix}`;
-      }
-    );
-    
-    return { __html: html };
-  } catch (error) {
-    console.error('Error rendering markdown:', error);
-    return { __html: `<p>${text}</p>` };
-  }
-};
-
+// Define the structure for the extracted digest sections
 interface DigestStructure {
-  oneLineSummary: string | null;
+  oneLineSummary: string;
   keyTakeaways: string[];
   whyWatch: string[];
-  breakdownItems: { timestamp: string; title: string; description: string }[];
-  breakdownType: 'chapter' | 'segment' | 'legacy' | null;
-  narrativeSummary: string | null;
+  detailedContent: string;
 }
 
+// Regex patterns
+const conciseSummaryRegex = /## (?:✨ )?Concise Summary\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
+const keyTakeawaysRegex = /## (?:🔑 )?Key Takeaways\s*(?:\r?\n|\r)((?:- \[ \].*|\*.*|-.*|\d+\..*)(?:\s*(?:\r?\n|\r)(?:- \[ \].*|\*.*|-.*|\d+\..*))*)/i;
+// Direct regex to find 'Reasons to Watch:' list anywhere in the text
+const reasonsToWatchRegex = /\*\*Reasons to Watch:\*\*\s*(?:\r?\n|\r|)((?:- \[ \].*|\*.*|-.*|\d+\..*)(?:\s*(?:\r?\n|\r)(?:- \[ \].*|\*.*|-.*|\d+\..*))*)/i;
+// Direct match for the exact Target Audience & Value text as seen in the console
+const targetAudienceHeadingRegex = /Target\s+Audience\s+&\s+Value\s+(?=\*\*Audience)/i;
+
+// Function to extract sections from markdown
 const extractMarkdownSections = (markdownText: string): DigestStructure => {
-  let oneLineSummary: string | null = null;
+  // Use let for remainingText as it will be modified
+  let oneLineSummary = '';
   let keyTakeaways: string[] = [];
   let whyWatch: string[] = [];
-  let narrativeSummary: string | null = null;
-  let breakdownType: 'chapter' | 'segment' | 'legacy' | null = null;
-  const breakdownItems: { timestamp: string; title: string; description: string }[] = [];
+  let detailedContent = '';
+  let remainingText = markdownText; // Start with the full text
 
-  if (!markdownText) {
-    return { oneLineSummary, keyTakeaways, whyWatch, breakdownItems, breakdownType, narrativeSummary };
-  }
-
-  // Extract one-line summary
-  // First try with ## Ultra-Concise Summary heading format
-  const ultraConciseRegex = /## (?:💡 )?Ultra-Concise Summary\s*(?:\r?\n|\r)([^\r\n]*(?:\r?\n|\r)(?:[^\r\n]*(?:\r?\n|\r))*?)/i;
-  const ultraConciseMatch = markdownText.match(ultraConciseRegex);
-
-  // Try simpler format without the heading
-  const simpleConciseMatch = markdownText.match(/Ultra-concise summary:\s*([^\n]+)/i);
-
-  if (ultraConciseMatch && ultraConciseMatch[1]) {
-    const summaryText = ultraConciseMatch[1].trim();
-    // Check if it has the "Ultra-concise summary:" prefix and extract the actual summary
-    const prefixMatch = summaryText.match(/Ultra-concise summary:\s*(.*)/i);
-    if (prefixMatch && prefixMatch[1]) {
-      oneLineSummary = prefixMatch[1].trim();
-    } else {
-      oneLineSummary = summaryText;
-    }
-  } else if (simpleConciseMatch && simpleConciseMatch[1]) {
-    oneLineSummary = simpleConciseMatch[1].trim();
-  }
-
-  // Extract key takeaways
-  // First try with ## Key Takeaways heading format
-  const keyPointsRegex = /## (?:🔑 )?Key Takeaways\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const keyPointsMatch = markdownText.match(keyPointsRegex);
-
-  // Try simpler format without the heading
-  const simpleKeyTakeawaysMatch = markdownText.match(/Key Takeaways:\s*([\s\S]*?)(?:\n\n|$)/i);
-
-  if (keyPointsMatch && keyPointsMatch[1]) {
-    const keyPointsSection = keyPointsMatch[1].trim();
-    // Check if there's a "Key Takeaways:" prefix to skip
-    const withoutPrefix = keyPointsSection.replace(/^Key Takeaways:\s*(?:\r?\n|\r)/i, '');
-
-    // Process each line that starts with a bullet point
-    const bulletPointLines = withoutPrefix.split(/\r?\n|\r/).filter(line => line.trim().startsWith('-'));
-    if (bulletPointLines.length > 0) {
-      keyTakeaways.push(...bulletPointLines.map(line => line.trim().replace(/^-\s*/, '')));
-    } else {
-      // If no bullet points found, try to extract them differently
-      const bulletPoints = withoutPrefix.split(/(?:\r?\n|\r)\s*-\s*/).filter(Boolean);
-      keyTakeaways.push(...bulletPoints.map(point => point.trim()));
-    }
-  } else if (simpleKeyTakeawaysMatch && simpleKeyTakeawaysMatch[1]) {
-    const lines = simpleKeyTakeawaysMatch[1]
-      .split(/\r?\n|\r/)
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().replace(/^-\s*/, ''));
-
-    if (lines.length > 0) {
-      keyTakeaways.push(...lines);
-    }
-  }
-
-  // Extract why watch
-  // First try with ## Why Watch heading format
-  const whyWatchRegex = /## (?:📺 )?Why Watch\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const whyWatchMatch = markdownText.match(whyWatchRegex);
-
-  // Try simpler format without the heading
-  const simpleWhyWatchMatch = markdownText.match(/Why Watch:\s*([\s\S]*?)(?:\n\n|$)/i);
-
-  if (whyWatchMatch && whyWatchMatch[1]) {
-    const whyWatchSection = whyWatchMatch[1].trim();
-    // Check if there's a "Why Watch:" prefix to skip
-    const withoutPrefix = whyWatchSection.replace(/^Why Watch:\s*(?:\r?\n|\r)/i, '');
-
-    // Process each line that starts with a bullet point
-    const bulletPointLines = withoutPrefix.split(/\r?\n|\r/).filter(line => line.trim().startsWith('-'));
-    if (bulletPointLines.length > 0) {
-      whyWatch.push(...bulletPointLines.map(line => line.trim().replace(/^-\s*/, '')));
-    } else {
-      // If no bullet points found, try to extract them differently
-      const bulletPoints = withoutPrefix.split(/(?:\r?\n|\r)\s*-\s*/).filter(Boolean);
-      whyWatch.push(...bulletPoints.map(point => point.trim()));
-    }
-  } else if (simpleWhyWatchMatch && simpleWhyWatchMatch[1]) {
-    const lines = simpleWhyWatchMatch[1]
-      .split(/\r?\n|\r/)
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().replace(/^-\s*/, ''));
-
-    if (lines.length > 0) {
-      whyWatch.push(...lines);
-    }
-  }
-
-  // Extract chapter breakdown (from new master format)
-  // Try with ## Chapter Breakdown heading format first
-  const chapterBreakdownRegex = /## (?:📚 )?Chapter Breakdown\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const chapterBreakdownMatch = markdownText.match(chapterBreakdownRegex);
-
-  // Try segment breakdown if chapter breakdown not found
-  const segmentBreakdownRegex = /## (?:📚 )?Segment Breakdown\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const segmentBreakdownMatch = markdownText.match(segmentBreakdownRegex);
-
-  // Legacy: try previous Section Breakdown format
-  const sectionRegex = /## (?:📚 )?(?:Chapter|Section) Breakdown\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const sectionMatch = markdownText.match(sectionRegex);
-
-  // Try simpler format without the heading
-  const simpleSectionMatch = markdownText.match(/Section Breakdown:\s*([\s\S]*?)(?:\n\n|$)/i);
-
-  // First try new Chapter Breakdown format
-  let processedAnyBreakdown = false;
-
-  if (chapterBreakdownMatch && chapterBreakdownMatch[1]) {
-    processedAnyBreakdown = true;
-    const sectionContent = chapterBreakdownMatch[1].trim();
-
-    // Format: [MM:SS](t=secs) - **Chapter Title**
-    // With 2-4 bullet points below
-    const chapterEntryRegex = /\[([0-9:]+)\]\(t=([0-9]+)\)\s*-\s*\*\*([^*]+)\*\*([\s\S]*?)(?=\[|$)/g;
-
-    let chapterMatch;
-    while ((chapterMatch = chapterEntryRegex.exec(sectionContent)) !== null) {
-      const timestamp = chapterMatch[1];
-      const title = chapterMatch[3].trim();
-      const bulletPointsText = chapterMatch[4].trim();
-
-      // Extract bullet points
-      const bulletPoints = bulletPointsText
-        .split(/\r?\n|\r/)
-        .filter(line => line.trim().startsWith('-'))
-        .map(line => line.trim().replace(/^-\s*/, ''));
-
-      breakdownType = 'chapter';
-      breakdownItems.push({
-        timestamp: timestamp,
-        title: title,
-        description: bulletPoints.join('\n')
-      });
-    }
-  } else if (segmentBreakdownMatch && segmentBreakdownMatch[1]) {
-    processedAnyBreakdown = true;
-    const sectionContent = segmentBreakdownMatch[1].trim();
-
-    // Format: ### [Generated Title for Logical Segment]
-    // With 2-4 bullet points below
-    const segmentEntryRegex = /###\s*\[?([^\]\n]+)\]?([\s\S]*?)(?=###|$)/g;
-
-    let segmentMatch;
-    let segmentIndex = 0;
-    while ((segmentMatch = segmentEntryRegex.exec(sectionContent)) !== null) {
-      segmentIndex++;
-      const title = segmentMatch[1].trim();
-      const bulletPointsText = segmentMatch[2].trim();
-
-      // Extract bullet points
-      const bulletPoints = bulletPointsText
-        .split(/\r?\n|\r/)
-        .filter(line => line.trim().startsWith('-'))
-        .map(line => line.trim().replace(/^-\s*/, ''));
-
-      breakdownType = 'segment';
-      breakdownItems.push({
-        timestamp: `Segment ${segmentIndex}`, // No timestamps for segments
-        title: title,
-        description: bulletPoints.join('\n')
-      });
-    }
-  } else if (sectionMatch && sectionMatch[1]) {
-    processedAnyBreakdown = true;
-    const sectionContent = sectionMatch[1].trim();
-    // Check if there's a "Section Breakdown:" prefix to skip
-    const withoutPrefix = sectionContent.replace(/^Section Breakdown:\s*(?:\r?\n|\r)/i, '');
-
-    breakdownType = 'legacy';
-    // Try different chapter formats
-
-    // Format 1: MM:SS: Title - Description
-    const simpleTimestampRegex = /(\d+:\d+):\s*([^-\n]+)(?:\s*-\s*(.*?))?(?:\r?\n|\r|$)/g;
-    let simpleMatch;
-
-    while ((simpleMatch = simpleTimestampRegex.exec(withoutPrefix)) !== null) {
-      breakdownItems.push({
-        timestamp: simpleMatch[1],
-        title: simpleMatch[2].trim(),
-        description: simpleMatch[3] ? simpleMatch[3].trim() : ''
-      });
-    }
-
-    // If no matches, try format with markdown links: [MM:SS](t=XX): Title - Description
-    if (breakdownItems.length === 0) {
-      const linkedTimestampRegex = /\[(\d+:\d+)\](?:\(t=\d+\))?\s*:\s*([^-\n]+)(?:\s*-\s*(.*?))?(?:\r?\n|\r|$)/g;
-      let linkedMatch;
-
-      while ((linkedMatch = linkedTimestampRegex.exec(withoutPrefix)) !== null) {
-        breakdownItems.push({
-          timestamp: linkedMatch[1],
-          title: linkedMatch[2].trim(),
-          description: linkedMatch[3] ? linkedMatch[3].trim() : ''
-        });
-      }
-    }
-
-    // Format 2: [MM:SS]-[MM:SS]: Title - Description
-    if (breakdownItems.length === 0) {
-      const timeRangeRegex = /\[?(\d+:\d+)\]?(?:\(t=\d+\))?\s*-\s*\[?(\d+:\d+)\]?(?:\(t=\d+\))?:\s*([^-\n]+)(?:\s*-\s*(.*?))?(?:\r?\n|\r|$)/g;
-      let timeRangeMatch;
-
-      while ((timeRangeMatch = timeRangeRegex.exec(withoutPrefix)) !== null) {
-        breakdownItems.push({
-          timestamp: timeRangeMatch[1],
-          title: timeRangeMatch[3].trim(),
-          description: timeRangeMatch[4] ? timeRangeMatch[4].trim() : ''
-        });
-      }
-    }
-
-    // Format 3: [MM:SS](t=XX) - Title: Description
-    if (breakdownItems.length === 0) {
-      const timestampRegex = /\[(\d+:\d+)\](?:\(t=\d+\))?\s*-\s*(?:\*\*)?(.*?)(?:\*\*)?(?::\s*(.*?))?(?:\r?\n|\r|$)/g;
-      let timestampMatch;
-
-      while ((timestampMatch = timestampRegex.exec(withoutPrefix)) !== null) {
-        breakdownItems.push({
-          timestamp: timestampMatch[1],
-          title: timestampMatch[2].trim(),
-          description: timestampMatch[3] ? timestampMatch[3].trim() : ''
-        });
-      }
-    }
-
-    // Format 4: - [MM:SS](t=XX) Title
-    if (breakdownItems.length === 0) {
-      const bulletRegex = /-\s*\[(\d+:\d+)\](?:\(t=\d+\))?\s*(?:\*\*)?(.*?)(?:\*\*)?(?::\s*(.*?))?(?:\r?\n|\r|$)/g;
-      let bulletMatch;
-
-      while ((bulletMatch = bulletRegex.exec(withoutPrefix)) !== null) {
-        breakdownItems.push({
-          timestamp: bulletMatch[1],
-          title: bulletMatch[2].trim(),
-          description: bulletMatch[3] ? bulletMatch[3].trim() : ''
-        });
-      }
-    }
-  } else if (simpleSectionMatch && simpleSectionMatch[1]) {
-    const sectionContent = simpleSectionMatch[1].trim();
-    const timestampRegex = /(\d+:\d+)(?:-\d+:\d+)?:\s*([^-\n]+)(?:\s*-\s*(.*?))?(?:\r?\n|\r|$)/g;
-    let timestampMatch;
-
-    while ((timestampMatch = timestampRegex.exec(sectionContent)) !== null) {
-      breakdownItems.push({
-        timestamp: timestampMatch[1],
-        title: timestampMatch[2].trim(),
-        description: timestampMatch[3] ? timestampMatch[3].trim() : ''
-      });
-    }
-  }
-
-  // Extract narrative summary (from master format)
-  const narrativeSummaryRegex = /## (?:📝 )?Narrative Summary\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const narrativeSummaryMatch = markdownText.match(narrativeSummaryRegex);
-
-  // Legacy: try full narrative summary
-  const fullSummaryRegex = /## (?:📝 )?Full Narrative Summary\s*(?:\r?\n|\r)([\s\S]*?)(?:(?:\r?\n|\r)##|$)/i;
-  const fullSummaryMatch = markdownText.match(fullSummaryRegex);
-
-  // Check for new master format narrative summary first, then fall back to full narrative summary
-  if (narrativeSummaryMatch && narrativeSummaryMatch[1]) {
-    narrativeSummary = narrativeSummaryMatch[1].trim();
-  } else if (fullSummaryMatch && fullSummaryMatch[1]) {
-    narrativeSummary = fullSummaryMatch[1].trim();
+  // 1. Extract Concise Summary
+  const conciseMatch = remainingText.match(conciseSummaryRegex);
+  if (conciseMatch && conciseMatch[1]) {
+    oneLineSummary = conciseMatch[1].trim();
+    // Remove the concise summary part from the main text to avoid duplication
+    remainingText = remainingText.replace(conciseSummaryRegex, '').trim();
   } else {
-    // Try to extract what remains after removing the other sections
-    let remainingText = markdownText;
-
-    // Remove ultra-concise section if found
-    if (ultraConciseMatch) {
-      remainingText = remainingText.replace(ultraConciseMatch[0], '');
-    } else if (simpleConciseMatch) {
-      remainingText = remainingText.replace(simpleConciseMatch[0], '');
+    // Fallback: Use the first non-empty line if no ## Concise Summary heading
+    const lines = remainingText.split(/\r?\n|\r/);
+    oneLineSummary = lines.find(line => line.trim().length > 0) || 'No summary available.';
+    // Remove the extracted first line
+    const firstLineIndex = remainingText.indexOf(oneLineSummary);
+    if (firstLineIndex !== -1) {
+      remainingText = remainingText.substring(firstLineIndex + oneLineSummary.length).trim();
     }
-
-    // Remove key takeaways section if found
-    if (keyPointsMatch) {
-      remainingText = remainingText.replace(keyPointsMatch[0], '');
-    } else if (simpleKeyTakeawaysMatch) {
-      remainingText = remainingText.replace(simpleKeyTakeawaysMatch[0], '');
-    }
-
-    // Remove why watch section if found
-    if (whyWatchMatch) {
-      remainingText = remainingText.replace(whyWatchMatch[0], '');
-    } else if (simpleWhyWatchMatch) {
-      remainingText = remainingText.replace(simpleWhyWatchMatch[0], '');
-    }
-
-    // Remove any breakdown sections if found
-    if (chapterBreakdownMatch) {
-      remainingText = remainingText.replace(chapterBreakdownMatch[0], '');
-    } else if (segmentBreakdownMatch) {
-      remainingText = remainingText.replace(segmentBreakdownMatch[0], '');
-    } else if (sectionMatch) {
-      remainingText = remainingText.replace(sectionMatch[0], '');
-    } else if (simpleSectionMatch) {
-      remainingText = remainingText.replace(simpleSectionMatch[0], '');
-    }
-
-    // Remove narrative summary if found
-    if (narrativeSummaryMatch) {
-      remainingText = remainingText.replace(narrativeSummaryMatch[0], '');
-    }
-
-    // Clean up the remaining text
-    narrativeSummary = remainingText.replace(/^#+\s*.*$/gm, '').trim();
   }
 
-  return {
+  // 2. Extract Key Takeaways
+  const keyTakeawaysMatch = remainingText.match(keyTakeawaysRegex);
+  if (keyTakeawaysMatch && keyTakeawaysMatch[1]) {
+    const keyTakeawaysText = keyTakeawaysMatch[1].trim();
+    // Split key takeaways into individual points
+    keyTakeaways = keyTakeawaysText.split(/\r?\n|\r/)
+      .map(line => line.replace(/^\s*[-*\d.]+\s*/, '').trim())
+      .filter(line => line.length > 0);
+    // Remove the key takeaways part from the main text to avoid duplication
+    remainingText = remainingText.replace(keyTakeawaysRegex, '').trim();
+  }
+
+  // 3. Find 'Reasons to Watch:' list directly anywhere in the content
+  const reasonsMatch = remainingText.match(reasonsToWatchRegex);
+  if (reasonsMatch?.[1]) {
+    // Split into list items, remove markdown list markers (*, -, digits.) and trim
+    whyWatch = reasonsMatch[1].split(/\r?\n|\r/)
+      .map(line => line.replace(/^\s*[-*\d.]+\s*/, '').trim())
+      .filter(line => line.length > 0);
+    
+    // Remove the matched 'Reasons to Watch:' section to avoid duplication
+    remainingText = remainingText.replace(reasonsToWatchRegex, '').trim();
+  }
+  
+  // 4. Remove only the 'Target Audience & Value' text before the Audience information
+  // Very precise removal based on exactly what we saw in the console
+  remainingText = remainingText.replace(targetAudienceHeadingRegex, '').trim();
+
+  // 4. Assign the *rest* of the text to detailedContent
+  // Any remaining text after extracting the concise summary, key takeaways, and why watch is considered detailed content.
+  detailedContent = remainingText.trim();
+
+  // Return the simplified structure
+  const result = {
     oneLineSummary,
     keyTakeaways,
     whyWatch,
-    breakdownItems,
-    breakdownType,
-    narrativeSummary
+    detailedContent,
   };
+  return result;
 };
+
+// ... (rest of the code remains the same)
 
 // Create a wrapper component that uses useSearchParams
 function DigestsPageContent() {
@@ -617,6 +112,8 @@ function DigestsPageContent() {
 
 // Main component implementation that doesn't directly use useSearchParams
 function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams }) {
+  console.log('[DigestsPageImpl] Component Rendering - Timestamp:', Date.now());
+
   const router = useRouter();
   const searchParams = searchParamsObj;
   const videoIdParam = searchParams.get('video');
@@ -641,7 +138,61 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
+  // Use a ref to track the last fetched video ID to prevent infinite loops
+  const lastFetchedVideoIdRef = useRef<number | null>(null);
+  const lastLoadedDigestVideoIdRef = useRef<number | null>(null); // Ref for loadLatestDigest effect
+
+  // Memoize the extracted digest sections to avoid re-calculating on every render
+  const digestSections = useMemo(() => {
+    if (selectedVideo?.summary) {
+      return extractMarkdownSections(selectedVideo.summary);
+    }
+    // Return default structure if no summary
+    return { oneLineSummary: '', keyTakeaways: [], whyWatch: [], detailedContent: '' };
+  }, [selectedVideo?.summary]); // Re-run only when the summary changes
+
+  // Helper to format time (MM:SS or HH:MM:SS) into seconds
+  const timeToSeconds = (timeStr: string): number => {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 3) { // HH:MM:SS
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) { // MM:SS
+      return parts[0] * 60 + parts[1];
+    }
+    return 0;
+  };
+
+  // Helper function to render markdown with clickable timestamps
+  const renderMarkdown = (text: string, videoId?: string): { __html: string } => {
+    if (!text) return { __html: '' };
+
+    let html = marked.parse(text) as string;
+
+    // Replace explicit [MM:SS](t=seconds) format
+    html = html.replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]\(t=(\d+)\)/g, (match, time, seconds) => {
+      if (videoId) {
+        return `<a href="https://www.youtube.com/watch?v=${videoId}&t=${seconds}s" target="_blank" rel="noopener noreferrer" class="inline-block py-0.5 px-1.5 mr-1 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors text-xs">${time}</a>`;
+      }
+      return time; // Don't link if no videoId
+    });
+
+    // Replace regular timestamps (MM:SS or HH:MM:SS)
+    html = html.replace(/(?<!href=")(?<!\d)(\d{1,2}:\d{2}(?::\d{2})?)(?!\d)/g, (match, time) => {
+      const seconds = timeToSeconds(time);
+      if (videoId && seconds > 0) {
+        return `<a href="https://www.youtube.com/watch?v=${videoId}&t=${seconds}s" target="_blank" rel="noopener noreferrer" class="inline-block py-0.5 px-1.5 mr-1 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors text-xs">${time}</a>`;
+      }
+      return time; // Don't link if no videoId or invalid time
+    });
+
+    // Basic sanitization (marked does some, but extra checks can be added if needed)
+    // For now, assuming marked's default sanitization is sufficient.
+    
+    return { __html: html };
+  };
+
   useEffect(() => {
+    console.log('[DigestsPageImpl] useEffect - fetchVideos executing');
     // Fetch videos with digests
     const fetchVideosWithDigests = async () => {
       setIsLoading(true);
@@ -683,6 +234,70 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   }, []);
 
   useEffect(() => {
+    console.log('[DigestsPageImpl] useEffect - URL Param change handler executing. videoIdParam:', videoIdParam, 'videos length:', videos.length);
+    // This useEffect handles URL parameter changes
+    if (videoIdParam && videos.length > 0) {
+      console.log('  Video ID param detected:', videoIdParam);
+      const videoId = parseInt(videoIdParam);
+      
+      // Skip if we've already fetched this video in this session
+      if (lastFetchedVideoIdRef.current === videoId) {
+        console.log('  Skipping fetch - already fetched video ID:', videoId);
+        return;
+      }
+      
+      console.log('  Fetching fresh video data from API for videoId:', videoId);
+      const fetchVideo = async () => {
+        try {
+          // Set ref before the fetch to prevent concurrent requests
+          lastFetchedVideoIdRef.current = videoId;
+          
+          const video = await api.getVideo(videoId);
+          if (video) {
+            console.log('  Successfully fetched fresh video by ID:', video);
+            
+            // Just update the selected video without modifying lists directly
+            setSelectedVideo(video);
+          }
+        } catch (error) {
+          console.error('  Error fetching video by ID:', error);
+          
+          // Fallback to local cache only if API call fails
+          const selectedVid = videos.find(v => v.id === videoId);
+          if (selectedVid) {
+            console.log('  Falling back to cached video data:', selectedVid);
+            setSelectedVideo(selectedVid);
+          }
+        }
+      };
+      fetchVideo();
+    }
+  }, [videoIdParam, videos]);
+
+  useEffect(() => {
+    console.log('[DigestsPageImpl] useEffect - Filtering videos executing. Dependencies:', { selectedCategory, selectedChannels });
+    // This useEffect handles filtering based on channel/category
+    const filterVideos = () => {
+      if (selectedCategory) {
+        const filteredVideos = allVideos.filter(video => 
+          video.categories && video.categories.includes(selectedCategory)
+        );
+        setVideos(filteredVideos);
+      } else if (selectedChannels.length > 0) {
+        const filteredVideos = allVideos.filter(video => 
+          selectedChannels.includes(video.channel_id)
+        );
+        setVideos(filteredVideos);
+      } else {
+        setVideos(allVideos);
+      }
+    };
+    filterVideos();
+  }, [selectedCategory, selectedChannels, allVideos]); // Re-run when filter criteria or allVideos change
+
+  useEffect(() => {
+    console.log('[DigestsPageImpl] useEffect - Keyboard shortcuts handler executing');
+    // Keyboard shortcuts
     const keyboardShortcuts: Record<string, () => void> = {
       'b': () => router.push('/library'),
       'n': () => {
@@ -711,7 +326,11 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
         const fetchVideosWithDigests = async () => {
           setIsLoading(true);
           try {
-            const data = await api.fetchVideos({ sortBy: 'date', timeRange: 'all', hasDigest: true });
+            const data = await api.fetchVideos({ 
+              sortBy: 'date', 
+              hasDigest: true, 
+              timeRange: 'all' // Add required timeRange property
+            });
             setVideos(data);
             setAllVideos(data);
           } catch (err) {
@@ -746,65 +365,30 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
     };
   }, [videos, selectedVideo]);
 
-  // This useEffect handles URL parameter changes
+  // This useEffect ensures we load the latest digest for the selected video
   useEffect(() => {
-    if (videoIdParam && videos.length > 0) {
-      console.log('Video ID param detected:', videoIdParam);
-      const videoId = parseInt(videoIdParam);
-      const selectedVid = videos.find(v => v.id === videoId);
-      
-      if (selectedVid) {
-        console.log('Found matching video, setting selected video:', selectedVid);
-        setSelectedVideo(selectedVid);
-      } else {
-        console.log('Video not found in current list, fetching from API...');
-        // If the video isn't in our current list, try to fetch it directly
-        const fetchVideo = async () => {
-          try {
-            const video = await api.getVideo(videoId);
-            if (video) {
-              console.log('Successfully fetched video by ID:', video);
-              setSelectedVideo(video);
-              // Add this video to our list if it's not already there
-              if (!videos.some(v => v.id === video.id)) {
-                setVideos(prev => [...prev, video]);
-                setAllVideos(prev => [...prev, video]);
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching video by ID:', error);
-          }
-        };
-        fetchVideo();
-      }
-    }
-  }, [videoIdParam, videos]);
-
-  useEffect(() => {
-    // If URL parameter exists, try to create a digest
-    if (urlParam) {
-      setUrl(urlParam);
-      // Don't automatically submit to create a digest
-      // Just populate the URL field for the user
-    }
-  }, [urlParam]);
-
-  useEffect(() => {
-    // This useEffect ensures we load the latest digest for the selected video
+    console.log('[DigestsPageImpl] useEffect - loadLatestDigest executing. selectedVideo ID:', selectedVideo?.id);
     if (selectedVideo?.id) {
-      console.log('Selected video changed, checking for latest digest...');
+      // Prevent re-fetching if this effect already ran for the current ID
+      if (lastLoadedDigestVideoIdRef.current === selectedVideo.id) {
+        console.log('  Skipping loadLatestDigest - already processed ID:', selectedVideo.id);
+        return;
+      }
+      console.log('  Selected video changed, checking for latest digest...');
       
       const loadLatestDigest = async () => {
         try {
+          // Set ref before fetch
+          lastLoadedDigestVideoIdRef.current = selectedVideo.id;
           // Fetch the latest video data to ensure we have the most recent digest
           const freshVideo = await api.getVideo(selectedVideo.id);
           if (freshVideo) {
-            console.log('Refreshed video data:', freshVideo);
+            console.log('  Refreshed video data:', freshVideo);
             // Update only the current selectedVideo, not the entire list
             setSelectedVideo(freshVideo);
           }
         } catch (error) {
-          console.error('Failed to refresh video data:', error);
+          console.error('  Failed to refresh video data:', error);
         }
       };
       
@@ -813,6 +397,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   }, [selectedVideo?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('[DigestsPageImpl] handleSubmit executing');
     e.preventDefault();
     if (!url.trim()) return;
     
@@ -820,13 +405,13 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
     setError(null);
     
     try {
-      console.log('Creating digest with URL:', url);
+      console.log('  Creating digest with URL:', url);
       // Call the API to create a digest
       const digestResponse = await api.createDigest(url);
-      console.log('Digest creation response:', digestResponse);
+      console.log('  Digest creation response:', digestResponse);
       
       if (digestResponse.id) {
-        console.log('Digest created successfully, video_id:', digestResponse.video_id);
+        console.log('  Digest created successfully, video_id:', digestResponse.video_id);
         
         // First refresh the videos list to include the new video
         try {
@@ -837,11 +422,11 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
           });
           setVideos(updatedVideos);
           setAllVideos(updatedVideos);
-          console.log('Videos refreshed, found video:', updatedVideos.find(v => v.id === digestResponse.video_id));
+          console.log('  Videos refreshed, found video:', updatedVideos.find(v => v.id === digestResponse.video_id));
           
           // Get the specific video with digest
           const newVideo = await api.getVideo(digestResponse.video_id);
-          console.log('Fetched new video with digest:', newVideo);
+          console.log('  Fetched new video with digest:', newVideo);
           
           // Set the selected video directly instead of relying on navigation
           setSelectedVideo(newVideo);
@@ -853,14 +438,14 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
             `/digests?video=${digestResponse.video_id}`
           );
         } catch (refreshError) {
-          console.error('Error refreshing videos:', refreshError);
+          console.error('  Error refreshing videos:', refreshError);
         }
       } else {
-        console.error('Missing digest ID in response', digestResponse);
+        console.error('  Missing digest ID in response', digestResponse);
         setError('Failed to create digest');
       }
     } catch (error) {
-      console.error('Error creating digest:', error);
+      console.error('  Error creating digest:', error);
       setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
@@ -870,23 +455,21 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   };
 
   const handleVideoSelect = (video: Video) => {
-    console.log('[DigestsPage] handleVideoSelect called with video:', video.id);
-    
-    // Set the selected video state immediately
-    setSelectedVideo(video);
+    console.log('[DigestsPageImpl] handleVideoSelect called with video:', video.id, 'Title:', video.title);
     
     // Use Next.js router for navigation (as confirmed in library page)
-    // No need for complex history API or refresh counters
+    // Let the URL change trigger the useEffect to load the video
     try {
-      console.log('[DigestsPage] Attempting router.push...');
+      console.log('[DigestsPageImpl] Attempting router.push...');
       router.push(`/digests?video=${video.id}`);
-      console.log('[DigestsPage] router.push executed.');
+      console.log('[DigestsPageImpl] router.push executed.');
     } catch (e: unknown) {
-      console.error('[DigestsPage] router.push failed:', e);
+      console.error('[DigestsPageImpl] router.push failed:', e);
     }
   };
 
   const handleChannelSelect = (channelId: number) => {
+    console.log('[DigestsPageImpl] handleChannelSelect:', channelId);
     if (selectedChannels.includes(channelId)) {
       setSelectedChannels(selectedChannels.filter(id => id !== channelId));
     } else {
@@ -895,6 +478,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   };
 
   const handleCategorySelect = (category: string) => {
+    console.log('[DigestsPageImpl] handleCategorySelect:', category);
     if (selectedCategory === category) {
       // If clicking the already selected category, clear the filter
       setSelectedCategory(null);
@@ -949,6 +533,8 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
   const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
   const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
 
+  console.log('[DigestsPageImpl] Returning JSX. isLoading:', isLoading, 'error:', error, 'selectedVideo:', selectedVideo?.id);
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -1000,6 +586,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                   <button
                     key={video.id}
                     onClick={() => {
+                      console.log(`[DigestsPage] onClick handler entered for video: ${video.id}`);
                       console.log(`[DigestsPage] Button clicked for video: ${video.id}`)
                       handleVideoSelect(video)
                     }}
@@ -1018,16 +605,6 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                         ) : (
                           <div className="w-full h-full bg-indigo-900"></div>
                         )}
-                        
-                        {/* Video title and channel overlaid on the thumbnail */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                          <h2 className="text-xl md:text-2xl font-bold mb-2 drop-shadow-md">{video.title}</h2>
-                          <p className="text-sm md:text-base">
-                            {video.channel_title || 
-                              (channels.find(c => c.id === video.channel_id)?.name) || 
-                              'Unknown channel'}
-                          </p>
-                        </div>
                       </div>
                       
                       <div className="overflow-hidden flex-1 min-w-0">
@@ -1162,7 +739,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
 
           {/* Video Display */}
           {selectedVideo && (
-            <div className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
+            <div key={`video-${selectedVideo.id}`} className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
               {/* Back button and video header with thumbnail background and overlay */}
               <div className="relative">
                 {/* Back to Library button */}
@@ -1192,7 +769,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                   
                   {/* Video title and channel overlaid on the thumbnail */}
                   <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                    <h2 className="text-xl md:text-2xl font-bold mb-2 drop-shadow-md">{selectedVideo.title}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold mb-2 drop-shadow-md" data-video-id={selectedVideo.id}>{selectedVideo.title}</h2>
                     <p className="text-sm md:text-base">
                       {selectedVideo.channel_title || 
                         (channels.find(c => c.id === selectedVideo.channel_id)?.name) || 
@@ -1258,7 +835,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
 
           {/* Digest Content */}
           {selectedVideo && selectedVideo.summary && (
-            <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div key={`digest-${selectedVideo.id}`} className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-semibold text-xl mb-4 text-indigo-800 flex items-center">
                 <DocumentTextIcon className="w-5 h-5 mr-2" />
                 <span>Digest</span>
@@ -1278,7 +855,7 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                           }
                         `}
                       >
-                        At a Glance
+                        Overview
                       </button>
                       <button
                         onClick={() => setActiveTab(1)}
@@ -1295,151 +872,99 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
                       </button>
                     </div>
                     <div className="mt-2">
-                  {/* At a Glance Panel */}
+                  {/* Overview Panel */}
                   <div className={`space-y-6 rounded-xl bg-white p-3 ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === 0 ? 'block' : 'hidden'}`}>
-                    {/* One-liner summary */}
-                    {(() => {
-                      const { oneLineSummary, keyTakeaways, whyWatch, breakdownItems, breakdownType, narrativeSummary } = extractMarkdownSections(selectedVideo.summary);
-                      
-                      return (
-                        <>
-                          {oneLineSummary && (
-                            <div className="bg-purple-50 p-5 rounded-lg border border-purple-100">
-                              <h4 className="font-medium text-purple-800 mb-3 flex items-center">
-                                <span className="mr-2 text-lg">💡</span>
-                                <span>Ultra-Concise Summary</span>
-                              </h4>
-                              <p className="text-gray-700 font-medium">{oneLineSummary}</p>
-                            </div>
-                          )}
-                          
-                          {/* Key Takeaways Section */}
-                          {keyTakeaways.length > 0 && (
-                            <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
-                              <h4 className="font-medium text-indigo-800 mb-3 flex items-center">
-                                <span className="mr-2 text-lg">🔑</span>
-                                <span>Key Takeaways</span>
-                              </h4>
-                              <ul className="list-disc list-outside ml-5 space-y-2">
-                                {keyTakeaways.map((point, idx) => (
-                                  <li key={idx} className="text-gray-700">{point}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          {/* Why Watch Section */}
-                          {whyWatch.length > 0 && (
-                            <div className="bg-green-50 p-5 rounded-lg border border-green-100">
-                              <h4 className="font-medium text-green-800 mb-3 flex items-center">
-                                <span className="mr-2 text-lg">👁️</span>
-                                <span>Why Watch</span>
-                              </h4>
-                              <ul className="list-disc list-outside ml-5 space-y-2">
-                                {whyWatch.map((point, idx) => (
-                                  <li key={idx} className="text-gray-700">{point}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {/* One-liner summary & Key Takeaways & Why Watch */}
+                    {digestSections.oneLineSummary && (
+                      <div className="bg-purple-50 p-5 rounded-lg border border-purple-100">
+                        <h4 className="font-medium text-purple-800 mb-3 flex items-center">
+                          <span className="mr-2 text-lg">💡</span>
+                          <span>Quick Overview</span>
+                        </h4>
+                        <p className="text-gray-700 font-medium">{digestSections.oneLineSummary}</p>
+                      </div>
+                    )}
+                    {digestSections.keyTakeaways.length > 0 && (
+                      <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
+                        <h4 className="font-medium text-indigo-800 mb-3 flex items-center">
+                          <span className="mr-2 text-lg">🔑</span>
+                          <span>Key Takeaways</span>
+                        </h4>
+                        <ul className="list-disc list-outside ml-5 space-y-2">
+                          {digestSections.keyTakeaways.map((point, idx) => {
+                            const renderedPoint = renderMarkdown(point, selectedVideo?.youtube_id);
+                            return (
+                              <li key={idx} className="text-gray-700">
+                                <div dangerouslySetInnerHTML={renderedPoint} />
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                    {digestSections.whyWatch.length > 0 && (
+                      <div className="bg-green-50 p-5 rounded-lg border border-green-100">
+                        <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                          <span className="mr-2 text-lg">👁️</span>
+                          <span>Why Watch</span>
+                        </h4>
+                        <ul className="list-disc list-outside ml-5 space-y-2">
+                          {digestSections.whyWatch.map((point, idx) => {
+                            const renderedPoint = renderMarkdown(point, selectedVideo?.youtube_id);
+                            return (
+                              <li key={idx} className="text-gray-700">
+                                <div dangerouslySetInnerHTML={renderedPoint} />
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Content Breakdown Panel */}
-                  <div className={`space-y-6 rounded-xl bg-white p-3 ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === 1 ? 'block' : 'hidden'}`}>
-                    {/* Actual Video Chapters Section (if chapters exist on video) */}
-                    {selectedVideo.chapters && selectedVideo.chapters.length > 0 && (
-                      <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
-                        <h4 className="font-medium text-gray-800 mb-3 flex items-center">
+                  <div className={`space-y-4 rounded-xl bg-white p-3 ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === 1 ? 'block' : 'hidden'}`}>
+                    {/* YouTube Chapters (if any) */}
+                    {selectedVideo?.chapters && selectedVideo.chapters.length > 0 && (
+                      <div className="bg-purple-50 p-5 rounded-lg border border-purple-100 mb-4">
+                        <h4 className="font-medium text-purple-800 mb-3 flex items-center">
                           <span className="mr-2 text-lg">🎬</span>
-                          <span>Video Chapters (Original)</span>
+                          <span>Video Chapters</span>
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {selectedVideo.chapters.map((chapter, idx) => (
-                            <div key={idx} className="flex items-start group">
-                              <a 
-                                href={formatTimeToYouTubeTimestamp(selectedVideo.youtube_id, chapter.start_time)} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-block py-1 px-2 bg-purple-100 text-purple-700 rounded font-mono hover:bg-purple-200 transition-colors text-xs"
-                              >
-                                {chapter.timestamp}
-                              </a>
-                              <span className="ml-2 text-gray-700 group-hover:text-purple-700 transition-colors text-sm">
+                            <a 
+                              key={idx}
+                              href={`https://www.youtube.com/watch?v=${selectedVideo.youtube_id}&t=${chapter.start_time}s`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group flex items-center p-2 bg-white hover:bg-purple-100 border border-purple-100 rounded-md transition-colors"
+                            >
+                              <span className="font-mono text-purple-700 bg-purple-50 group-hover:bg-purple-200 px-2 py-1 rounded mr-3 transition-colors text-xs inline-block min-w-[75px] text-center">
+                                {new Date(chapter.start_time * 1000).toISOString().substr(11, 8).replace(/^00:/, '')}
+                              </span>
+                              <span className="text-gray-700 group-hover:text-purple-700 transition-colors text-sm">
                                 {chapter.title}
                               </span>
-                            </div>
+                            </a>
                           ))}
                         </div>
                       </div>
                     )}
                     
-                    {/* Summarized Breakdown Section */}
-                    {(() => {
-                      const { oneLineSummary, keyTakeaways, whyWatch, breakdownItems, breakdownType, narrativeSummary } = extractMarkdownSections(selectedVideo.summary);
-                      
-                      // Helper to generate dynamic breakdown title
-                      const getBreakdownTitle = () => {
-                        switch (breakdownType) {
-                          case 'chapter': return 'Chapter Breakdown';
-                          case 'segment': return 'Segment Breakdown';
-                          case 'legacy': return 'Section Breakdown';
-                          default: return 'Content Breakdown';
-                        }
-                      };
-                      
-                      return (
-                        <>
-                          {breakdownItems.length > 0 && (
-                            <div className="bg-purple-50 p-5 rounded-lg border border-purple-100">
-                              <h4 className="font-medium text-purple-800 mb-3 flex items-center">
-                                <span className="mr-2 text-lg">📚</span>
-                                <span>{getBreakdownTitle()}</span> {/* Dynamic Title */}
-                              </h4>
-                              <div className="space-y-4">
-                                {breakdownItems.map((item, idx) => (
-                                  <div key={idx} className="mb-2">
-                                    <p className="font-medium text-purple-800">
-                                      {item.timestamp && item.timestamp.match(/\d+:\d+/) && // Check if it looks like a timestamp
-                                        <a 
-                                          href={formatTimeToYouTubeTimestamp(selectedVideo.youtube_id, item.timestamp)} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="inline-block py-0.5 px-1.5 mr-2 bg-purple-200 text-purple-700 rounded font-mono hover:bg-purple-300 transition-colors text-xs"
-                                        >
-                                          {item.timestamp} 
-                                        </a>
-                                      }
-                                      {item.title}
-                                    </p>
-                                    {item.description && (
-                                      <div className="prose prose-sm max-w-none text-gray-700 mt-1 pl-5">
-                                        <div dangerouslySetInnerHTML={renderMarkdown(item.description, selectedVideo.youtube_id)} />
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Narrative Summary */}
-                          {narrativeSummary && (
-                            <div className="bg-amber-50 p-5 rounded-lg border border-amber-100">
-                              <h4 className="font-medium text-amber-800 mb-3 flex items-center">
-                                <span className="mr-2 text-lg">📝</span>
-                                <span>Narrative Summary</span>
-                              </h4>
-                              <div className="prose prose-sm max-w-none text-gray-700">
-                                <div dangerouslySetInnerHTML={renderMarkdown(narrativeSummary, selectedVideo.youtube_id)} />
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {/* Detailed Content */}
+                    {digestSections.detailedContent && (
+                      <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
+                        <h4 className="font-medium text-gray-800 mb-3 flex items-center">
+                          <span className="mr-2 text-lg">📝</span>
+                          <span>Detailed Summary</span>
+                        </h4>
+                        {/* Render the entire detailed content as markdown */}
+                        <div className="prose prose-sm max-w-none text-gray-700">
+                          <div dangerouslySetInnerHTML={renderMarkdown(digestSections.detailedContent, selectedVideo?.youtube_id)} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

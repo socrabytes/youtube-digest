@@ -159,54 +159,7 @@ async def process_video_background(video_id: int):
             failed_stages.append("transcript")
             # Continue to next stage
         
-        # Step 2: Generate summary
-        try:
-            # Check if digest already exists
-            digest = db.query(DigestModel).filter(DigestModel.video_id == video_id).first()
-            
-            if not digest:
-                logger.info(f"[Background Task] Generating summary for video ID: {video_id}")
-                
-                # Get the transcript
-                transcript = db.query(TranscriptModel).filter(
-                    TranscriptModel.video_id == video_id,
-                    TranscriptModel.status == TranscriptStatus.PROCESSED
-                ).first()
-                
-                if not transcript:
-                    logger.error(f"[Background Task] No transcript found for video ID: {video_id}")
-                    raise ValueError("No transcript available for summary generation")
-                
-                # Generate summary
-                summarizer = OpenAISummarizer()
-                summary_result = summarizer.generate(transcript.content)
-                
-                # Create new digest
-                digest = DigestModel(
-                    video_id=video_id,
-                    content=summary_result["summary"],
-                    digest_type=DigestType.SUMMARY,
-                    llm_id=91,  # Default GPT-4 model
-                    user_id=1,  # Default user
-                    tokens_used=summary_result["usage"].get("total_tokens", 0),
-                    cost=summary_result["usage"].get("estimated_cost_usd", 0.0),
-                    model_version="gpt-4-0125-preview",
-                    generated_at=datetime.utcnow(),
-                    extra_data=summary_result["usage"]
-                )
-                db.add(digest)
-                db.commit()
-                db.refresh(digest)
-                
-                logger.info(f"[Background Task] Summary saved for video ID: {video_id}")
-            else:
-                logger.info(f"[Background Task] Using existing summary for video ID: {video_id}")
-        except Exception as e:
-            logger.error(f"[Background Task] Error in summary stage: {str(e)}", exc_info=True)
-            failed_stages.append("summary")
-            # Continue to next stage
-        
-        # Update video status based on processing results
+        # Step 3: Update video status
         try:
             # Refresh video from database to avoid stale data
             db.refresh(video)
