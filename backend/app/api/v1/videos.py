@@ -159,54 +159,7 @@ async def process_video_background(video_id: int):
             failed_stages.append("transcript")
             # Continue to next stage
         
-        # Step 2: Generate summary
-        try:
-            # Check if digest already exists
-            digest = db.query(DigestModel).filter(DigestModel.video_id == video_id).first()
-            
-            if not digest:
-                logger.info(f"[Background Task] Generating summary for video ID: {video_id}")
-                
-                # Get the transcript
-                transcript = db.query(TranscriptModel).filter(
-                    TranscriptModel.video_id == video_id,
-                    TranscriptModel.status == TranscriptStatus.PROCESSED
-                ).first()
-                
-                if not transcript:
-                    logger.error(f"[Background Task] No transcript found for video ID: {video_id}")
-                    raise ValueError("No transcript available for summary generation")
-                
-                # Generate summary
-                summarizer = OpenAISummarizer()
-                summary_result = summarizer.generate(transcript.content)
-                
-                # Create new digest
-                digest = DigestModel(
-                    video_id=video_id,
-                    digest=summary_result["summary"],
-                    digest_type=DigestType.SUMMARY,
-                    llm_id=91,  # Default GPT-4 model
-                    user_id=1,  # Default user
-                    tokens_used=summary_result["usage"].get("total_tokens", 0),
-                    cost=summary_result["usage"].get("estimated_cost_usd", 0.0),
-                    model_version="gpt-4-0125-preview",
-                    generated_at=datetime.utcnow(),
-                    extra_data=summary_result["usage"]
-                )
-                db.add(digest)
-                db.commit()
-                db.refresh(digest)
-                
-                logger.info(f"[Background Task] Summary saved for video ID: {video_id}")
-            else:
-                logger.info(f"[Background Task] Using existing summary for video ID: {video_id}")
-        except Exception as e:
-            logger.error(f"[Background Task] Error in summary stage: {str(e)}", exc_info=True)
-            failed_stages.append("summary")
-            # Continue to next stage
-        
-        # Update video status based on processing results
+        # Step 3: Update video status
         try:
             # Refresh video from database to avoid stale data
             db.refresh(video)
@@ -304,6 +257,7 @@ async def create_video(
             existing_video.like_count = video_info.get('like_count')
             existing_video.tags = video_info.get('tags', [])
             existing_video.categories = video_info.get('categories', [])
+            existing_video.chapters = video_info.get('chapters')
             existing_video.upload_date = video_info.get('upload_date')
             existing_video.channel_id = channel.id
             existing_video.processed = False  # Reset processed flag for re-processing
@@ -324,6 +278,7 @@ async def create_video(
                 description=video_info.get('description', ''),
                 tags=video_info.get('tags', []),
                 categories=video_info.get('categories', []),
+                chapters=video_info.get('chapters'),
                 channel_id=channel.id,
                 upload_date=video_info.get('upload_date'),
                 processed=False,
@@ -389,12 +344,12 @@ async def process_video(
 
         # Check if digest already exists
         existing_digest = db.query(DigestModel).filter(DigestModel.video_id == video_id).first()
-        if existing_digest and existing_digest.digest:
+        if existing_digest and existing_digest.content:
             logger.info(f"Using existing digest for video ID: {video_id}")
             # Map fields for API compatibility
             video.url = video.webpage_url
             video.thumbnail_url = video.thumbnail
-            video.summary = existing_digest.digest
+            video.summary = existing_digest.content
             return video
 
         # Reset error state if retrying
@@ -432,7 +387,7 @@ async def list_videos(
         # Get the latest digest for each video
         latest_digests = {}
         if video_ids:
-            # Use a subquery to get the latest digest for each video
+            # Use a subquery to get the latest digest for each video_id
             from sqlalchemy import func
             
             # Get the maximum generated_at timestamp for each video_id
@@ -459,7 +414,7 @@ async def list_videos(
             
             # Add summary from the latest digest if available
             if video.id in latest_digests:
-                video.summary = latest_digests[video.id].digest
+                video.summary = latest_digests[video.id].content
                 
         return videos
     except Exception as e:
@@ -484,7 +439,7 @@ async def get_video(video_id: int, db: Session = Depends(get_db)):
         
         if latest_digest:
             # Map content to summary for API compatibility
-            video.summary = latest_digest.digest
+            video.summary = latest_digest.content
             
         return video
     except HTTPException:
@@ -511,7 +466,7 @@ async def get_video_by_youtube_id(youtube_id: str, db: Session = Depends(get_db)
         
         if latest_digest:
             # Map content to summary for API compatibility
-            video.summary = latest_digest.digest
+            video.summary = latest_digest.content
             
         return video
     except Exception as e:

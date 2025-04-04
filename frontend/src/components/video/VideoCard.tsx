@@ -64,17 +64,17 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
     return likes.toString();
   };
 
+  // Get a fallback thumbnail URL if the provided one is missing
+  const getFallbackThumbnailUrl = (url: string): string => {
+    const videoId = getYouTubeVideoId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '/placeholder-thumbnail.jpg';
+  };
+
   // Function to get video ID from YouTube URL
   const getYouTubeVideoId = (url: string): string => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : '';
-  };
-
-  // Get thumbnail URL from video ID
-  const getThumbnailUrl = (url: string): string => {
-    const videoId = getYouTubeVideoId(url);
-    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '/placeholder-thumbnail.jpg';
   };
 
   const handleGenerateSummary = async (e: React.MouseEvent) => {
@@ -150,7 +150,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onClick, onRefresh }) => {
     >
       <div className="relative aspect-video">
         <Image
-          src={getThumbnailUrl(video.url)}
+          src={video.thumbnail_url || getFallbackThumbnailUrl(video.url)}
           alt={video.title || 'Video thumbnail'}
           fill
           className="object-cover"

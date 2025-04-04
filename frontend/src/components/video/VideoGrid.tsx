@@ -1,14 +1,17 @@
 import React from 'react';
 import type { Video } from '@/types/video';
+import LoadingSpinner from '../common/LoadingSpinner'; // Added import
 
 type VideoGridProps = {
   videos: Video[];
   onVideoSelect: (video: Video) => void;
   channels?: any[];
   showChannel?: boolean;
+  isLoading?: boolean;
+  onRefresh?: () => void; // Added onRefresh prop
 };
 
-const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels = [], showChannel = true }) => {
+const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels = [], showChannel = true, isLoading = false, onRefresh }) => {
   const getChannelImage = (channelId?: number) => {
     if (!channelId || !channels.length) return null;
     const channel = channels.find(c => c.id === channelId);
@@ -76,13 +79,21 @@ const VideoGrid: React.FC<VideoGridProps> = ({ videos, onVideoSelect, channels =
     return 'Unknown';
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner text="Loading videos..." />
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {videos.map((video) => (
         <div 
           key={video.id} 
           className="bg-white overflow-hidden cursor-pointer flex flex-col shadow-sm hover:shadow-md transition-shadow"
-          onClick={() => typeof onVideoSelect === 'function' ? onVideoSelect(video) : console.error('onVideoSelect is not a function')}
+          onClick={() => typeof onVideoSelect === 'function' && onVideoSelect(video)}
           aria-label={`Select video: ${video.title}`}
         >
           {/* Thumbnail with Duration */}

@@ -18,6 +18,7 @@ export interface Video {
   description?: string;
   tags?: string[];
   categories?: string[];
+  chapters?: VideoChapter[];
   transcript?: string | null;
   transcript_source?: 'manual' | 'auto';
   summary?: string;
@@ -32,6 +33,13 @@ export interface Video {
   updated_at: string;
   processed?: boolean;
   error_message?: string;
+}
+
+export interface VideoChapter {
+  start_time: number;
+  end_time?: number;
+  title: string;
+  timestamp: string;
 }
 
 export interface VideoDigest {

@@ -35,7 +35,7 @@ class Digest(Base, TimestampMixin):
                     comment="User who requested the digest")
     
     # Digest content
-    digest = Column(Text, nullable=False,
+    content = Column(Text, nullable=False,
                    comment="The actual digest text content")
     digest_type = Column(SQLEnum(DigestType), nullable=False,
                         comment="Type of digest generated")

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { api } from '@/services/api';
 import type { Video } from '@/types/video';
 import VideoGrid from '@/components/video/VideoGrid';
@@ -9,34 +9,46 @@ import VideoList from '@/components/video/VideoList';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { useKeyboardShortcut } from '@/utils/useKeyboardShortcut';
 import KeyboardShortcutsHelp from '@/components/common/KeyboardShortcutsHelp';
 import {
-  FilterIcon,
-  ViewGridIcon,
-  ViewListIcon,
-  SearchIcon,
-  XIcon,
+  AdjustmentsVerticalIcon,
   ChevronDownIcon,
-  ClockIcon,
-  CollectionIcon,
-  AdjustmentsIcon,
-  InformationCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ClockIcon,
+  RectangleStackIcon,
+  FunnelIcon,
+  InformationCircleIcon,
+  MagnifyingGlassIcon,
+  VideoCameraIcon,
+  Squares2X2Icon,
+  Bars4Icon,
   XCircleIcon,
-  VideoCameraIcon
-} from '@heroicons/react/outline';
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 import MainLayout from '@/components/layout/MainLayout';
 
-export default function LibraryPage() {
+// Create a wrapper component that uses useSearchParams
+function LibraryPageContent() {
+  // This component uses useSearchParams and will be wrapped in Suspense
+  const searchParams = useSearchParams();
+  
+  // Rest of the component logic
+
+  // Pass searchParams to the main component
+  return <LibraryPageImpl searchParamsObj={searchParams} />;
+}
+
+// Main component implementation that doesn't directly use useSearchParams
+function LibraryPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams }) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
   const [channels, setChannels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
-  const searchParams = useSearchParams();
+  // Use the searchParams passed as props instead of directly calling useSearchParams()
+  const searchParams = searchParamsObj;
   const router = useRouter();
 
   // Default filter values
@@ -109,7 +121,11 @@ export default function LibraryPage() {
       setLoading(true);
       try {
         const [videosData, channelsData] = await Promise.all([
-          api.fetchVideos({}),
+          api.fetchVideos({
+            sortBy: 'date',
+            timeRange: 'all',
+            hasDigest: false
+          }),
           api.getChannels()
         ]);
         
@@ -156,9 +172,10 @@ export default function LibraryPage() {
     // Filter by categories
     if (selectedCategories.length > 0) {
       result = result.filter(video => {
-        if (!video.categories) return false;
+        // Ensure categories exists and is an array before using includes
+        if (!video.categories || !Array.isArray(video.categories)) return false;
         return selectedCategories.some(category => 
-          video.categories.includes(category)
+          video.categories!.includes(category)
         );
       });
     }
@@ -176,7 +193,10 @@ export default function LibraryPage() {
     
     // Filter by user's videos
     if (showOnlyMyVideos) {
-      result = result.filter(video => video.user_id === 'current_user_id'); // Replace 'current_user_id' with actual user ID
+      // The Video type doesn't have user_id property, so we need to add a proper implementation
+      // For now, we'll comment this out to fix the TypeScript error
+      // TODO: Implement proper user filtering once user authentication is integrated
+      // result = result.filter(video => video.user_id === 'current_user_id');
     }
     
     // Sort videos
@@ -276,37 +296,53 @@ export default function LibraryPage() {
 
   // Keyboard shortcuts
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-  useKeyboardShortcut('g', () => {
-    setView('grid');
-  });
   
-  useKeyboardShortcut('l', () => {
-    setView('list');
-  });
-  
-  useKeyboardShortcut('f', () => {
-    setIsFilterMenuOpen(!isFilterMenuOpen);
-  });
+  // Set up keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      if (e.target instanceof HTMLInputElement || 
+          e.target instanceof HTMLTextAreaElement ||
+          e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+      
+      const key = e.key.toLowerCase();
+      
+      switch (key) {
+        case 'g':
+          setView('grid');
+          break;
+        case 'l':
+          setView('list');
+          break;
+        case 'f':
+          setIsFilterMenuOpen(!isFilterMenuOpen);
+          break;
+        case 's':
+          const searchInput = document.getElementById('search-input');
+          if (searchInput) {
+            searchInput.focus();
+          }
+          break;
+        case 'arrowright':
+          if (currentPage < totalPages) {
+            paginate(currentPage + 1);
+          }
+          break;
+        case 'arrowleft':
+          if (currentPage > 1) {
+            paginate(currentPage - 1);
+          }
+          break;
+      }
+    };
 
-  useKeyboardShortcut('s', () => {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.focus();
-    }
-  });
-
-  // Hot keys for pagination
-  useKeyboardShortcut('ArrowRight', () => {
-    if (currentPage < totalPages) {
-      paginate(currentPage + 1);
-    }
-  });
-
-  useKeyboardShortcut('ArrowLeft', () => {
-    if (currentPage > 1) {
-      paginate(currentPage - 1);
-    }
-  });
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentPage, totalPages, isFilterMenuOpen]);
 
   const handleShowPopularVideos = () => {
     // Sort by view count and set filter
@@ -439,7 +475,7 @@ export default function LibraryPage() {
                       onClick={() => setSearchTerm('')}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
@@ -452,7 +488,7 @@ export default function LibraryPage() {
                       onClick={() => setDurationFilter('all')}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
@@ -465,7 +501,7 @@ export default function LibraryPage() {
                       onClick={() => toggleCategory(category)}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 ))}
@@ -478,7 +514,7 @@ export default function LibraryPage() {
                       onClick={() => setShowOnlyMyVideos(false)}
                       className="ml-1.5 flex-shrink-0 inline-flex text-indigo-500 focus:outline-none"
                     >
-                      <XIcon className="h-4 w-4" aria-hidden="true" />
+                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
@@ -499,7 +535,7 @@ export default function LibraryPage() {
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 {isFilterMenuOpen ? 'Hide Filters' : 'Show Filters'}
-                <FilterIcon className="ml-2 -mr-0.5 h-4 w-4" />
+                <FunnelIcon className="ml-2 -mr-0.5 h-4 w-4" />
               </button>
               
               <div className="inline-flex rounded-md shadow-sm">
@@ -509,7 +545,7 @@ export default function LibraryPage() {
                     view === 'grid' ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-gray-700 hover:bg-gray-50'
                   } focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
                 >
-                  <ViewGridIcon className="h-5 w-5" />
+                  <Squares2X2Icon className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setView('list')}
@@ -517,7 +553,7 @@ export default function LibraryPage() {
                     view === 'list' ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-gray-700 hover:bg-gray-50'
                   } focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500`}
                 >
-                  <ViewListIcon className="h-5 w-5" />
+                  <Bars4Icon className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -606,7 +642,7 @@ export default function LibraryPage() {
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <input
                     type="text"
@@ -689,7 +725,8 @@ export default function LibraryPage() {
                       setSearchTerm('');
                       setSelectedCategories([]);
                       setDurationFilter('all');
-                      setSortBy('date_desc');
+                      setSortBy('date');
+                      setSortOrder('desc');
                     }
                   }}
                 />
@@ -892,5 +929,16 @@ export default function LibraryPage() {
       </div>
 
     </MainLayout>
+  );
+}
+
+// Export a component that wraps the content in Suspense
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen">
+      <LoadingSpinner size="large" />
+    </div>}>
+      <LibraryPageContent />
+    </Suspense>
   );
 }

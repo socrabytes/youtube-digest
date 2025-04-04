@@ -5,16 +5,13 @@ import time
 from functools import wraps
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from threading import Lock
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from enum import Enum
 from app.core.config import settings
 from datetime import datetime
+from .base import SummarizerInterface, SummaryFormat, SummaryGenerationError
 
 logger = logging.getLogger(__name__)
-
-class SummaryGenerationError(Exception):
-    """Base exception for summary generation errors."""
-    pass
 
 class RateLimiter:
     """Rate limiter using a sliding window."""
@@ -44,21 +41,12 @@ class RateLimiter:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-class OpenAISummarizer:
+class OpenAISummarizer(SummarizerInterface):
     # Token cost per 1k tokens (in USD) for GPT-4
     TOKEN_COST_PER_1K = {
         "prompt": 0.01,    # Input tokens
         "completion": 0.03 # Output tokens
     }
-    
-    PROMPT = """You are an expert YouTube video summarizer. 
-Generate a clear and informative summary that:
-1. Identifies 3-5 key topics or main points
-2. Highlights important insights and revelations
-3. Explains complex concepts in clear terms
-4. Captures the overall significance and impact
-
-Keep the summary focused, informative, and under 250 words."""
 
     def __init__(self):
         logger.info(f"Initializing OpenAISummarizer with API key present: {bool(settings.OPENAI_API_KEY)}")
@@ -78,7 +66,7 @@ Keep the summary focused, informative, and under 250 words."""
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type(Exception)
     )
-    def _call_openai_api(self, messages: List[Dict[str, str]], max_tokens: int = 500) -> Dict[str, Any]:
+    def _call_openai_api(self, messages: List[Dict[str, str]], max_tokens: int = 1000) -> Dict[str, Any]:
         """Make an API call to OpenAI with retry logic and rate limiting."""
         try:
             response = self.client.chat.completions.create(
@@ -108,10 +96,10 @@ Keep the summary focused, informative, and under 250 words."""
             else:
                 raise
 
-    def generate(self, transcript: str) -> Dict[str, Any]:
+    def generate(self, transcript: str, format_type: SummaryFormat = SummaryFormat.STANDARD) -> Dict[str, Any]:
         """Generate summary from transcript text with improved error handling and retry logic."""
         try:
-            logger.info("Starting summary generation")
+            logger.info(f"Starting summary generation with format: {format_type}")
             
             # Input validation
             if not transcript or not transcript.strip():
@@ -122,7 +110,7 @@ Keep the summary focused, informative, and under 250 words."""
                 logger.warning("Using mock OpenAI response because API key is not set")
                 # Return a mock response
                 return {
-                    "summary": "This is a mock summary because the OpenAI API key is not set. In a real environment, this would be a summary of the video content.",
+                    "summary": f"This is a mock {format_type} summary because the OpenAI API key is not set. In a real environment, this would be a summary of the video content.",
                     "usage": {
                         "prompt_tokens": 100,
                         "completion_tokens": 50,
@@ -154,9 +142,36 @@ Keep the summary focused, informative, and under 250 words."""
             truncated_text = transcript[:15000]  # Approximately 3750 tokens
             logger.info(f"Transcript length: {len(transcript)}, truncated length: {len(truncated_text)}")
             
+            # Get the appropriate prompt for the requested format
+            prompt = self.get_prompt_for_format(format_type)
+            
+            # Check if we're using the master prompt (which has placeholders)
+            if "{title}" in prompt or "{description}" in prompt or "{chapters_formatted_list}" in prompt:
+                logger.info("Using master digest prompt with placeholder adaption")
+                # Simple adaptation - instead of trying to get all that data, modify the prompt
+                # to work with just the transcript
+                modified_prompt = prompt.replace(
+                    """**Context:**
+Title: {title}
+Description: {description}
+Chapters:
+{chapters_formatted_list} <-- System will provide "None" if not available
+
+**Transcript:**
+{transcript}""",
+                    """**Context:**
+Title: [Title not provided]
+Description: [Description not provided]
+Chapters: None
+
+**Transcript:**
+[Transcript provided in user message]"""
+                )
+                prompt = modified_prompt
+            
             # Prepare messages
             messages = [
-                {"role": "system", "content": self.PROMPT},
+                {"role": "system", "content": prompt},
                 {"role": "user", "content": truncated_text}
             ]
             
@@ -180,7 +195,8 @@ Keep the summary focused, informative, and under 250 words."""
                     "completion_tokens": response.usage.completion_tokens,
                     "total_tokens": response.usage.total_tokens,
                     "estimated_cost_usd": cost,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "model": response.model  # Add the model name here
                 }
             }
             
@@ -193,3 +209,7 @@ Keep the summary focused, informative, and under 250 words."""
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}", exc_info=True)
             raise SummaryGenerationError(f"Failed to generate summary: {str(e)}")
+
+    def get_prompt_for_format(self, format_type: SummaryFormat) -> str:
+        """Return the prompt for the specified format."""
+        return super().get_prompt_for_format(format_type)

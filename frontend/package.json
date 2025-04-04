@@ -9,13 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@heroicons/react": "^1.0.6",
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.1.1",
+    "marked": "^15.0.7",
     "next": "15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "20.17.10",
     "@types/react": "19.0.1",
     "@types/react-dom": "^19",
