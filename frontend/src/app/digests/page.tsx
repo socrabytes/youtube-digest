@@ -285,6 +285,8 @@ function DigestsPageImpl({ searchParamsObj }: { searchParamsObj: URLSearchParams
         setVideos(filteredVideos);
       } else if (selectedChannels.length > 0) {
         const filteredVideos = allVideos.filter(video => 
+          video.channel_id !== null && 
+          video.channel_id !== undefined && 
           selectedChannels.includes(video.channel_id)
         );
         setVideos(filteredVideos);
