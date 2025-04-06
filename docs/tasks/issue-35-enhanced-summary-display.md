@@ -139,48 +139,19 @@ These sections are presented alongside the standard video metadata (thumbnail, t
 
 ### API Notes
 - The frontend expects digest content in markdown format
-- Structure sections with clear headings as shown above
+- Structure sections with clear headings as shown in the blueprint
 - The parser can identify various heading formats, but consistent formatting improves accuracy
 - Regular chapters extracted from YouTube will be displayed alongside the digest content
 
-### Visual Design Principles
-
-- **Typography**: Clear hierarchy with different styles for headings, bullets, and timestamps
-- **Spacing**: Generous whitespace between sections for easy scanning
-- **Visual Cues**: Consistent use of icons or emojis to indicate information types:
-  - 🔑 for key takeaways
-  - 📝 for tips
-  - ⚠️ for warnings
-  - 🎥 for must-watch moments
-
-## Known Issues / Future Improvements
-
-### Digest Type Functionality
-
-- **Note on Digest Type Dropdown**:
-  - Currently, when a digest is generated, all sections of the enhanced markdown are populated regardless of the selected digest type
-  - The backend appears to create a complete digest with all sections despite the digest type selection
-  - Future enhancement: Implement proper filtering based on the selected digest type
-  - Backend may need updates to only return specific digest sections based on the type
-
-### Performance Optimization
-
-# * (Section Removed - Optimizations deferred) *
 
 ## Technical Considerations
 
 1. **Transcript Processing**:
-  - Backend processes transcripts to provide structured data for summaries.
+  - Backend processes transcripts to provide structured data for digests.
   - Chapter information is utilized when available.
 
 2. **Timestamp Generation**:
-  - Timestamps in summaries are converted to clickable links (`youtube.com/watch?v=...&t=...s`).
-
-3. **Summary Length Control**:
-# * (Section Removed - Expand/collapse deferred) *
-
-4. **Responsive Design**:
-# * (Section Removed - Specifics handled by general responsiveness) *
+  - Timestamps in chapter breakdowns are converted to clickable links (`youtube.com/watch?v=...&t=...s`).
 
 ## Future Enhancements (Post-MVP)
 
@@ -191,7 +162,7 @@ These sections are presented alongside the standard video metadata (thumbnail, t
   - Full accessibility compliance review
 * **Other Ideas:**
   - Visual timeline with key moment indicators
-  - User-generated timestamps and notes
+  - User notes
   - Sentiment analysis to highlight emotional segments
   - AI-generated chapter titles for videos without chapters
-  - Sharing options for specific segments with custom notes
+
