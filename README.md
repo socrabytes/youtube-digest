@@ -168,6 +168,32 @@ docker-compose up
 3. Wait for the AI to process the video
 4. View your generated summary
 
+### 🐳 Docker Workflow
+
+This project uses Docker Compose for containerization. Here's the recommended workflow:
+
+1. **Starting containers**:
+   ```bash
+   docker-compose up      # Start and create containers if they don't exist
+   ```
+
+2. **Stopping containers** (preserves data):
+   ```bash
+   docker-compose stop    # Stop containers without removing them
+   ```
+
+3. **Restarting containers**:
+   ```bash
+   docker-compose start   # Restart previously stopped containers
+   ```
+
+4. **Complete teardown** (for rebuilding):
+   ```bash
+   docker-compose down    # Remove containers, networks, and default volumes
+   ```
+
+Only use `docker-compose down` when you need to tear down your environment completely to ensure a clean start, such as after making significant changes to dependencies, Dockerfiles, or for a complete rebuild.
+
 ## 📚 Documentation
 
 <table>
