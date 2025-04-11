@@ -7,71 +7,126 @@
 Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's GPT-4. Get the essence of any video without watching the whole thing.
 
 ## ✨ Key Features
+- 🔄 **Transcript Processing** - Handles transcript extraction and processing
+- 🤖 **Generate Digests** - Concise, informative video insights from GPT-4 (more coming soon!!!)
+- ⏱️ **Chapter Navigation** - Easily navigate videos using extracted timestamp chapter data
+- 🗄️ **Database Storage** - Stores video metadata and transcript data in PostgreSQL
+- 💰 **Cost Tracking** - Monitors OpenAI token usage and costs (coming soon!!!)
+- 📦 **Containerization** - Runs on Docker with Docker Compose
 
-- 🧠 **Smart Summaries** - Concise, informative video digests using GPT-4
-- 📝 **Full Transcripts** - Access complete video transcripts
-- ⏱️ **Interactive Timestamps** - Click timestamps to jump to specific video moments
-- 📑 **Chapter Navigation** - Easily navigate videos using extracted chapter data
-- 🔄 **Automatic Processing** - Handles transcript extraction and processing
-- 💰 **Cost Tracking** - Monitors OpenAI token usage and costs
+<p align="center"><img src="docs/ytd-demoGIF.gif" width="600" alt="YouTube Digest Demo"></p>
 
-<!-- Add a GIF demo here once created -->
-<!-- <p align="center"><img src="docs/demo.gif" width="600" alt="YouTube Digest Demo"></p> -->
-
-## 🛠️ Tech Stack
+## 💻 System Architecture
 
 <table>
   <tr>
-    <td><strong>Backend</strong></td>
-    <td>
-      <img src="https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white" alt="Python" />
-      <img src="https://img.shields.io/badge/FastAPI-0.100+-green?logo=fastapi&logoColor=white" alt="FastAPI" />
-      <img src="https://img.shields.io/badge/PostgreSQL-15-blue?logo=postgresql&logoColor=white" alt="PostgreSQL" />
-      <img src="https://img.shields.io/badge/OpenAI-GPT_4-green?logo=openai&logoColor=white" alt="OpenAI" />
-      <img src="https://img.shields.io/badge/yt--dlp-Latest-red?logo=youtube&logoColor=white" alt="yt-dlp" />
+    <th colspan="2" align="center"><h3>🛠️ Component Overview</h3></th>
+  </tr>
+  <tr>
+    <td width="25%"><strong>Frontend Layer</strong></td>
+    <td width="75%">
+      <p>Next.js application that provides the user interface for submitting videos and viewing digests</p>
+      <p>
+        <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white" alt="Next.js" />
+        <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white" alt="TypeScript" />
+        <img src="https://img.shields.io/badge/Tailwind_CSS-3-blue?logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+        <img src="https://img.shields.io/badge/Shadcn_UI-Latest-black?logo=react&logoColor=white" alt="Shadcn UI" />
+        <img src="https://img.shields.io/badge/React_Query-Latest-ff4154?logo=react-query&logoColor=white" alt="React Query" />
+      </p>
     </td>
   </tr>
   <tr>
-    <td><strong>Frontend</strong></td>
+    <td><strong>API Layer</strong></td>
     <td>
-      <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white" alt="Next.js" />
-      <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white" alt="TypeScript" />
-      <img src="https://img.shields.io/badge/Tailwind_CSS-3-blue?logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
-      <img src="https://img.shields.io/badge/Shadcn_UI-Latest-black?logo=react&logoColor=white" alt="Shadcn UI" />
-      <img src="https://img.shields.io/badge/React_Query-Latest-ff4154?logo=react-query&logoColor=white" alt="React Query" />
+      <p>FastAPI backend that handles HTTP requests, manages background tasks, and controls the application flow</p>
+      <p>
+        <img src="https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white" alt="Python" />
+        <img src="https://img.shields.io/badge/FastAPI-0.100+-green?logo=fastapi&logoColor=white" alt="FastAPI" />
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Processing Services</strong></td>
+    <td>
+      <p>Specialized services that extract video metadata, transcripts, and chapter information from YouTube</p>
+      <p>
+        <img src="https://img.shields.io/badge/yt--dlp-Latest-red?logo=youtube&logoColor=white" alt="yt-dlp" />
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>AI Engine</strong></td>
+    <td>
+      <p>Integration with OpenAI's GPT-4 for generating intelligent video summaries and insights</p>
+      <p>
+        <img src="https://img.shields.io/badge/OpenAI-GPT_4-green?logo=openai&logoColor=white" alt="OpenAI" />
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Data Layer</strong></td>
+    <td>
+      <p>PostgreSQL database for storing video metadata, transcripts, digests, and user data</p>
+      <p>
+        <img src="https://img.shields.io/badge/PostgreSQL-15-blue?logo=postgresql&logoColor=white" alt="PostgreSQL" />
+      </p>
     </td>
   </tr>
   <tr>
     <td><strong>Infrastructure</strong></td>
     <td>
-      <img src="https://img.shields.io/badge/Docker-Compose-blue?logo=docker&logoColor=white" alt="Docker" />
-      <img src="https://img.shields.io/badge/pytest-Latest-blue?logo=pytest&logoColor=white" alt="pytest" />
-      <img src="https://img.shields.io/badge/Jest-Latest-C21325?logo=jest&logoColor=white" alt="Jest" />
-      <img src="https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=github-actions&logoColor=white" alt="GitHub Actions" />
+      <p>Docker-based containerization for easy deployment and consistent development environments</p>
+      <p>
+        <img src="https://img.shields.io/badge/Docker-Compose-blue?logo=docker&logoColor=white" alt="Docker" />
+        <img src="https://img.shields.io/badge/pytest-Latest-blue?logo=pytest&logoColor=white" alt="pytest" />
+        <img src="https://img.shields.io/badge/Jest-Latest-C21325?logo=jest&logoColor=white" alt="Jest" />
+        <img src="https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=github-actions&logoColor=white" alt="GitHub Actions" />
+      </p>
     </td>
   </tr>
 </table>
 
-## 💡 How It Works
+### 🔄 Processing Flow
 
 <table>
-  <tr>
-    <td width="60%">
-      <ol>
-        <li>Paste a YouTube URL in the input field</li>
-        <li>Our backend fetches video metadata and transcript using <code>yt-dlp</code></li>
-        <li>A background task processes the transcript and generates an AI summary</li>
-        <li>Chapters are automatically extracted when available</li>
-        <li>The frontend displays your digest with interactive timestamps</li>
-      </ol>
-    </td>
-    <td width="40%" align="center">
-      <!-- Replace with actual GIF when available -->
-      <em>Demo GIF coming soon</em>
-      <!-- <img src="docs/demo.gif" width="100%" alt="YouTube Digest Demo" /> -->
-    </td>
+  <tr align="center">
+    <td><strong>1. Submit</strong></td>
+    <td>→</td>
+    <td><strong>2. Validate</strong></td>
+    <td>→</td>
+    <td><strong>3. Extract</strong></td>
+    <td>→</td>
+    <td><strong>4. Process</strong></td>
+    <td>→</td>
+    <td><strong>5. Generate</strong></td>
+    <td>→</td>
+    <td><strong>6. Store</strong></td>
+    <td>→</td>
+    <td><strong>7. Display</strong></td>
+  </tr>
+  <tr align="center">
+    <td><small>URL Input</small></td>
+    <td></td>
+    <td><small>URL Check</small></td>
+    <td></td>
+    <td><small>Metadata</small></td>
+    <td></td>
+    <td><small>Transcript</small></td>
+    <td></td>
+    <td><small>AI Digest</small></td>
+    <td></td>
+    <td><small>Database</small></td>
+    <td></td>
+    <td><small>UI View</small></td>
   </tr>
 </table>
+
+1. **Input**: User submits a YouTube URL through the Next.js frontend
+2. **Validation**: FastAPI backend validates and extracts video information using yt-dlp
+3. **Processing**: Background services handle transcript and chapter extraction
+4. **AI Generation**: OpenAI GPT-4 analyzes the transcript and generates a comprehensive digest
+5. **Storage**: All data is stored in PostgreSQL for future retrieval
+6. **Presentation**: Frontend displays the digest with interactive timestamps and chapter navigation
 
 ## 🚀 Quick Start
 
