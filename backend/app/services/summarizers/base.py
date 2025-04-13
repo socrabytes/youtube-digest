@@ -70,7 +70,6 @@ Analyze the provided Video Context and Transcript. Perform the following steps i
 6. If Chapters ARE NOT provided: Attempt to identify 3-6 logical segments based on topic shifts in the transcript. Create a descriptive title and **2-4 detailed summary points** for each identified segment with appropriate formatting.
 7. If Chapters ARE NOT provided AND reasonable segmentation is not possible: Note this internally.
 8. Extract elements for a Video Highlights section, including key tools, compelling data points, actionable strategies, memorable quotes, and core case studies/examples.
-9. Optionally, determine if a brief Narrative Summary (100-150 words) is needed for extra context or **overall flow across the entire video**.
 
 Now, construct your response using ONLY the following Markdown structure and headings. Adhere strictly to the formatting and guidelines.
 
@@ -129,46 +128,68 @@ Now, construct your response using ONLY the following Markdown structure and hea
 * 🚀 Time to market: Reduced by 3 weeks per feature
 
 ## Segment Breakdown <-- Use this heading ONLY if Chapters are NOT Available AND Segmentation IS Possible
-### 🚀 The Problem with Traditional Marketing Approaches
-Modern consumers are increasingly resistant to traditional marketing tactics. The speaker identifies three critical failures in conventional approaches:
 
-* **Banner Blindness:** 86% of consumers suffer from "banner blindness" - the unconscious ignoring of advertisement-like information
-* **Trust Deficit:** Only 34% of consumers trust the brands they buy from, down from 58% a decade ago
-* **Content Saturation:** The average person encounters between 6,000-10,000 ads daily, creating an "attention wall"
+### 🏗️ **ARCHITECTURAL FOUNDATIONS**
+> "The decisions you make in the early stages will echo throughout your entire project."
 
-> "We're not just competing with other brands. We're competing with TikTok, Netflix, and every other source of dopamine in our customers' lives."
+THREE KEY PRINCIPLES discussed:
+* **Technology independence** keeps business logic separate from implementation details
+* **Balanced abstractions** prevent both over-engineering and technical debt
+* **Testability by design** requires loose coupling between components
 
-### 🔍 The Psychology Behind Effective Storytelling
-**The Science of Memory Formation:**
-Storytelling triggers the release of oxytocin, which enhances:
-1. Trust building
-2. Emotional connection
-3. Memory formation
+NOTABLE INSIGHT: Most failed projects trace problems to architectural decisions made in the first two weeks.
 
-When information is presented in narrative form, retention increases by up to 22x compared to facts alone.
+---
 
-* 🧠 **Neural Coupling:** When listening to well-crafted stories, a phenomenon called "neural coupling" occurs where the listener's brain activity starts to mirror the speaker's
-* 💭 **Narrative Transportation:** The feeling of being "lost in a story" reduces counterarguing and critical thinking about brand messages
+### 🧩 Components vs. Microservices
 
-### 🛠️ Building Your Brand Narrative Framework
-The workshop introduces the SPARK framework for creating compelling brand stories:
+| Approach | Benefits | Challenges |
+|----------|----------|------------|
+| **Component-based** | Simpler deployment, cohesive codebase | Tight coupling risks |
+| **Microservices** | Independent scaling, technology flexibility | Operational complexity |
 
-* **S**ituation - Establish the current reality
-* **P**roblem - Identify the conflict or challenge
-* **A**pproach - Introduce your unique solution
-* **R**esults - Highlight tangible outcomes
-* **K**nowledge - Share lessons learned or insights
+The presenter demonstrates how Netflix migrated from monolith to microservices over THREE YEARS, not as a single dramatic rewrite.
 
-**Practical Exercise Results:**
-Participants who applied this framework saw an average 43% increase in audience engagement with their next campaign.
+"Don't let architecture astronauts convince you that you need microservices on day one."
 
-### 🔮 Future Trends: AI and Personalized Storytelling
-**Emerging Technologies:**
-* **AI-Generated Narrative Variants:** Testing thousands of slight story variations to find optimal engagement
-* **Emotional Response Tracking:** Using facial recognition and biometrics to measure story impact
-* **Cross-Platform Narrative Ecosystems:** Creating cohesive but platform-appropriate story elements
+---
 
-**Expert Prediction:** "Within 5 years, 70% of brand stories will have AI-optimized elements, but the core human truth at their center will remain irreplaceable."
+### About Domain-Driven Design ⚙️
+
+Domain-Driven Design provides a vocabulary and set of practices that bridge technical implementation with business requirements.
+
+**Core elements:**
+1. Ubiquitous language shared across team
+2. Bounded contexts with clear boundaries
+3. Context mapping between domains
+
+*Example implementation:* The team modeled a complex insurance system by creating separate bounded contexts for:
+* Policy management
+* Claims processing
+* Customer relationships
+
+**Result:** 40% reduction in cross-team dependencies
+
+---
+
+### 📊 PERFORMANCE CONSIDERATIONS
+
+**Latency vs. Throughput** - The presenter clarifies these often conflated concepts:
+* Latency: Time to complete a single operation
+* Throughput: Operations per time unit
+
+```
+Optimizing for one often impacts the other
+```
+
+Caching strategies significantly impact both metrics:
+
+**Cache hit ratio improvement techniques:**
+* TTL-based invalidation appropriate for semi-static data
+* Event-based invalidation for accuracy-critical information
+* 𝄆 Write-through caching for write-heavy workloads
+
+**CASE STUDY:** E-commerce platform reduced average page load by 67% through strategic cache implementation
 
 ## Video Highlights ✨
 * **Key Tools Mentioned:** 🛠️ **StoryEngine** - AI platform for narrative optimization, 📱 **EmoMap** - Emotional journey mapping software
@@ -176,9 +197,6 @@ Participants who applied this framework saw an average 43% increase in audience 
 * **Actionable Strategies:** 🔄 The SPARK framework for brand storytelling, 🎯 "Three Scene" minimum for any marketing narrative
 * **Memorable Quotes:** 💬 "In a world of data, story is the electricity that makes it meaningful" - Speaker, 🗣️ "Your brand isn't what you say it is, it's the story people tell themselves about you"
 * **Core Case Studies:** 🖼️ **Airbnb's "Belong Anywhere"** campaign transformation, 📚 **LEGO's revival** through storytelling focus
-
-## Narrative Summary <-- Include this section ONLY if step 9 determined it was needed for overall flow
-[Output the brief narrative summary (100-150 words) here]
 
 </Instructions>
 
