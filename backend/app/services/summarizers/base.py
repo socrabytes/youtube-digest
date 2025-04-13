@@ -97,18 +97,28 @@ Now, construct your response using ONLY the following Markdown structure and hea
 - [Output Takeaway 5 (optional)]
 
 ## Chapter Breakdown <-- Use this heading ONLY if Chapters ARE Available in Context
-[MM:SS](t=secs) - **Chapter Title 1**
- - [Output 2-4 **detailed bullet points with bolded terms** for this chapter]
-[MM:SS](t=secs) - **Chapter Title 2**
- - [Output 2-4 **detailed bullet points with bolded terms** for this chapter]
-... (Repeat for all available chapters)
+**[MM:SS](t=secs) | 📌 Chapter Title 1**
+ - 💡 [First key insight with **important terms** highlighted and specific details that add value]
+ - 📊 [Second insight featuring **data points**, **metrics**, or **comparisons** when available]
+ - 🔄 [Additional insights connecting to **broader concepts** or providing **practical applications**]
+
+**[MM:SS](t=secs) | 📌 Chapter Title 2**
+ - 💡 [Key insight with **important terms** highlighted]
+ - 📊 [Data-driven insight with specific **numbers** or **percentages** when available]
+ - 🔑 [Practical takeaway or **actionable advice** from this section]
+... (Repeat for all available chapters, maintaining consistent emoji usage for similar types of points)
 
 ## Segment Breakdown <-- Use this heading ONLY if Chapters are NOT Available AND Segmentation IS Possible
-### [Generated Title for Logical Segment 1]
- - [Output 2-4 **detailed bullet points with bolded terms** for this segment]
-### [Generated Title for Logical Segment 2]
- - [Output 2-4 **detailed bullet points with bolded terms** for this segment]
-... (Repeat for 3-6 identified segments)
+### 🚀 [Compelling, Descriptive Title for Logical Segment 1]
+ - 💡 [Primary insight with **key terminology** and specific details that demonstrate deep understanding]
+ - 📈 [Evidence-based point with **statistics**, **examples**, or **case studies** if mentioned]
+ - 🔍 [Insightful analysis connecting this point to **broader implications** or **practical applications**]
+
+### 🔄 [Strategic, Descriptive Title for Logical Segment 2]
+ - 💡 [Primary concept with **technical terms** properly explained]
+ - 📊 [Supporting evidence with specific **metrics** or **comparisons** when available]
+ - 🛠️ [Implementation insight or **methodology details** that provide practical value]
+... (Repeat for 3-6 identified segments, using diverse, relevant emojis to visually distinguish different topics)
 
 **IMPORTANT:** Include EITHER "## Chapter Breakdown" OR "## Segment Breakdown", NEVER both. If Chapters are not available in the context AND you cannot logically segment the content, omit BOTH of these sections entirely from your output.
 

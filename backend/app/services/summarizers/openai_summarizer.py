@@ -42,10 +42,10 @@ class RateLimiter:
         pass
 
 class OpenAISummarizer(SummarizerInterface):
-    # Token cost per 1k tokens (in USD) for GPT-4
+    # Token cost per 1k tokens (in USD) for o3-mini
     TOKEN_COST_PER_1K = {
-        "prompt": 0.01,    # Input tokens
-        "completion": 0.03 # Output tokens
+        "prompt": 0.0011,    # Input tokens (o3-mini) - $1.10 per 1M tokens
+        "completion": 0.0044  # Output tokens (o3-mini) - $4.40 per 1M tokens
     }
 
     def __init__(self):
@@ -66,15 +66,40 @@ class OpenAISummarizer(SummarizerInterface):
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type(Exception)
     )
-    def _call_openai_api(self, messages: List[Dict[str, str]], max_tokens: int = 1000) -> Dict[str, Any]:
+    def _call_openai_api(self, messages: List[Dict[str, str]], max_tokens: int = 3000) -> Dict[str, Any]:
         """Make an API call to OpenAI with retry logic and rate limiting."""
+        model_name = "o3-mini" # Define the model to use
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4-0125-preview",
-                messages=messages,
-                temperature=0.2,
-                max_tokens=max_tokens
-            )
+            logger.info(f"Calling OpenAI API with model: {model_name} with max_tokens={max_tokens}") # Log model and max_tokens
+            
+            api_params = {
+                "model": model_name,
+                "messages": messages,
+                "max_tokens": max_tokens # Default parameter name
+            }
+            
+            # Add parameters specific to o3-mini based on the latest example and error message
+            if model_name == "o3-mini":
+                # o3-mini uses max_completion_tokens instead of max_tokens
+                if "max_tokens" in api_params:
+                    max_val = api_params.pop("max_tokens")
+                    api_params["max_completion_tokens"] = max_val
+                    logger.info(f"Switched max_tokens to max_completion_tokens={max_val} for o3-mini")
+                else: # Should not happen based on current logic, but good practice
+                    api_params["max_completion_tokens"] = max_tokens 
+                    logger.warning("max_tokens not found in api_params, setting max_completion_tokens directly")
+
+                api_params["response_format"] = {"type": "text"}
+                api_params["reasoning_effort"] = "medium" # Reverted from high
+                api_params["store"] = False
+                logger.info("Adding o3-mini specific parameters: response_format, reasoning_effort, store")
+            
+            # Add standard parameters like temperature if needed for either model
+            # api_params["temperature"] = 0.7 
+
+            response = self.client.chat.completions.create(**api_params)
+            
+            logger.info(f"Received response from model: {response.model}") # Log the model that responded
             return response
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
@@ -96,10 +121,11 @@ class OpenAISummarizer(SummarizerInterface):
             else:
                 raise
 
-    def generate(self, transcript: str, format_type: SummaryFormat = SummaryFormat.STANDARD) -> Dict[str, Any]:
-        """Generate summary from transcript text with improved error handling and retry logic."""
+    def generate(self, transcript: str, title: Optional[str] = None, description: Optional[str] = None, chapters: Optional[List[Dict[str, Any]]] = None, format_type: SummaryFormat = SummaryFormat.STANDARD) -> Dict[str, Any]:
+        """Generate summary from transcript text using provided context."""
         try:
             logger.info(f"Starting summary generation with format: {format_type}")
+            logger.info(f"Context provided - Title: {bool(title)}, Description: {bool(description)}, Chapters: {bool(chapters)}")
             
             # Input validation
             if not transcript or not transcript.strip():
@@ -142,36 +168,37 @@ class OpenAISummarizer(SummarizerInterface):
             truncated_text = transcript[:15000]  # Approximately 3750 tokens
             logger.info(f"Transcript length: {len(transcript)}, truncated length: {len(truncated_text)}")
             
-            # Get the appropriate prompt for the requested format
-            prompt = self.get_prompt_for_format(format_type)
+            # Get the base prompt (MASTER_DIGEST_PROMPT)
+            base_prompt = self.get_prompt_for_format(format_type)
             
-            # Check if we're using the master prompt (which has placeholders)
-            if "{title}" in prompt or "{description}" in prompt or "{chapters_formatted_list}" in prompt:
-                logger.info("Using master digest prompt with placeholder adaption")
-                # Simple adaptation - instead of trying to get all that data, modify the prompt
-                # to work with just the transcript
-                modified_prompt = prompt.replace(
-                    """**Context:**
-Title: {title}
-Description: {description}
-Chapters:
-{chapters_formatted_list} <-- System will provide "None" if not available
-
-**Transcript:**
-{transcript}""",
-                    """**Context:**
-Title: [Title not provided]
-Description: [Description not provided]
-Chapters: None
-
-**Transcript:**
-[Transcript provided in user message]"""
-                )
-                prompt = modified_prompt
+            # Format the chapters list for the prompt
+            if chapters:
+                chapters_formatted_list = "\n".join([f"- {chap.get('timestamp', 'N/A')}: {chap.get('title', 'Untitled')}" for chap in chapters])
+            else:
+                chapters_formatted_list = "None"
+                
+            # Prepare context dictionary for formatting
+            context = {
+                "title": title or "[Title not provided]",
+                "description": description or "[Description not provided]",
+                "chapters_formatted_list": chapters_formatted_list,
+                "transcript": "[Transcript provided in user message]" # Placeholder as transcript goes in user message
+            }
             
-            # Prepare messages
+            # Format the base prompt with the actual context
+            # We only format the context part, assuming the transcript itself goes in the user message below
+            try:
+                developer_prompt = base_prompt.format(**context)
+            except KeyError as e:
+                logger.error(f"Failed to format prompt. Missing key: {e}. Prompt: {base_prompt}", exc_info=True)
+                # Fallback to a very simple prompt if formatting fails
+                developer_prompt = "Summarize the transcript provided in the user message."
+
+            logger.debug(f"Final Developer Prompt: \n{developer_prompt}") # Log the formatted prompt
+            
+            # Prepare messages - o3 models use developer message instead of system message
             messages = [
-                {"role": "system", "content": prompt},
+                {"role": "developer", "content": developer_prompt},
                 {"role": "user", "content": truncated_text}
             ]
             
@@ -212,4 +239,6 @@ Chapters: None
 
     def get_prompt_for_format(self, format_type: SummaryFormat) -> str:
         """Return the prompt for the specified format."""
-        return super().get_prompt_for_format(format_type)
+        # Ensure MASTER_DIGEST_PROMPT is accessible here if defined in base class
+        # This assumes SummarizerInterface has MASTER_DIGEST_PROMPT as a class attribute
+        return self.MASTER_DIGEST_PROMPT

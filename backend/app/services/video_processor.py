@@ -181,12 +181,7 @@ class VideoProcessor:
         return processed_chapters
 
     def generate_summary(self, video_data: dict) -> str:
-        """Generate a summary of the video using OpenAI.
-        
-        Creates a structured summary with:
-        - Key Takeaways: Bullet points of main concepts
-        - Why Watch: Reasons why the video is worth watching
-        - Main content summary
+        """Generate a summary of the video using configured summarizer.
         
         Args:
             video_data: Video data dictionary containing transcript and metadata
@@ -194,93 +189,59 @@ class VideoProcessor:
         Returns:
             Structured markdown summary of the video
         """
-        logger.info("[VideoProcessor] Starting OpenAI API summary generation")
+        logger.info("[VideoProcessor] Starting summary generation using configured summarizer")
         
         transcript = video_data.get("transcript", "")
-        if not transcript:
+        
+        # Define known invalid/placeholder transcripts
+        invalid_transcripts = [
+            "",
+            "[No transcript available for this video]",
+            "[Empty transcript]",
+            "[Transcript format not supported]",
+            # Add any other placeholder/error strings from TranscriptService if needed
+        ]
+        
+        # Extract context data from video_data
+        title = video_data.get("title")
+        description = video_data.get("description")
+        chapters = video_data.get("chapters") # Assumes chapters are already processed list/dict
+        
+        # Check if the transcript is valid or a known placeholder/error
+        if not transcript or transcript in invalid_transcripts or transcript.startswith("[Failed") or transcript.startswith("[Error"):
             logger.warning("[VideoProcessor] No transcript available for summary generation")
             return ""
             
-        title = video_data.get("title", "")
-        description = video_data.get("description", "")
-        
-        # Include chapters in the system prompt if available
-        chapters_text = ""
-        chapters = video_data.get("chapters", [])
-        if chapters:
-            chapters_text = "Video Chapters:\n"
-            for chapter in chapters:
-                chapters_text += f"- {chapter['timestamp']}: {chapter['title']}\n"
-        
-        # Improved system prompt with explicit structured output instructions
-        system_prompt = f"""You are an expert YouTube video summarizer. Create a concise, informative summary of the video based on the transcript.
-        
-Video Title: {title}
-{f'Video Description: {description}' if description else ''}
-{chapters_text}
-
-Your summary should include:
-
-1. A structured overview of the video content
-2. Key Takeaways: Bullet points with the most important concepts
-3. Why Watch: Bullet points explaining why someone should watch this video
-
-Format your response in a structured format with headers and bullet points:
-
-# Summary
-[Concise summary of the video content]
-
-## Key Takeaways:
-- [Key point 1]
-- [Key point 2]
-- [Key point 3]
-
-## Why Watch:
-- [Reason 1]
-- [Reason 2]
-
-Only include the most significant information and make the summary concise and valuable."""
-
-        # User prompt contains the transcript
-        user_prompt = f"Here is the transcript: {transcript}"
-
+        # Call the summarizer with the transcript and context
         try:
-            # Call OpenAI API with improved parameters
-            from openai import OpenAI
-            client = OpenAI(
-                api_key=os.environ.get("OPENAI_API_KEY"),
+            logger.info("Calling summarizer service with transcript and context...")
+            summary_result = self.summarizer.generate(
+                transcript,
+                title=title,
+                description=description,
+                chapters=chapters, # Pass the chapters list/dict
+                format_type="STANDARD"
             )
             
-            response = client.chat.completions.create(
-                model=os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo"),
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=2048,
-                temperature=0.3,
-                top_p=1.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.0,
-            )
+            # Extract summary and usage data from the result dictionary
+            summary = summary_result.get("summary", "")
+            usage = summary_result.get("usage", {})
             
-            # Extract summary from response
-            summary = response.choices[0].message.content.strip()
+            if not summary:
+                 logger.warning("[VideoProcessor] Summarizer returned an empty summary.")
+                 return ""
+
+            logger.info(f"[VideoProcessor] Received summary: {summary[:100]}...")
             
             # Log token usage
-            usage = {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens,
-            }
-            
-            logger.info(f"[VideoProcessor] OpenAI API usage: {usage}")
+            logger.info(f"[VideoProcessor] Summarizer API usage: {usage}")
             
             # Store the usage data for later reference
-            video_data["openai_usage"] = usage
+            video_data["openai_usage"] = usage # Consider renaming if other summarizers used
             
             return summary
             
         except Exception as e:
-            logger.error(f"[VideoProcessor] Failed to generate summary: {str(e)}")
-            raise VideoProcessingError(f"Failed to generate summary: {str(e)}")
+            # Catch potential errors from the summarizer service
+            logger.error(f"[VideoProcessor] Error during summary generation: {e}", exc_info=True)
+            return ""
