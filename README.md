@@ -4,11 +4,11 @@
 [![Project Status: Active](https://img.shields.io/badge/Project-Active-success.svg)](https://github.com/users/socrabytes/projects/6/views/7)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's GPT-4. Get the essence of any video without watching the whole thing.
+Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's o3-mini. Get the essence of any video without watching the whole thing.
 
 ## ✨ Key Features
 - 🔄 **Transcript Processing** - Handles transcript extraction and processing
-- 🤖 **Generate Digests** - Concise, informative video insights from GPT-4 (more coming soon!!!)
+- 🤖 **Generate Digests** - Concise, informative video insights from o3-mini (more coming soon!!!)
 - ⏱️ **Chapter Navigation** - Easily navigate videos using extracted timestamp chapter data
 - 🗄️ **Database Storage** - Stores video metadata and transcript data in PostgreSQL
 - 💰 **Cost Tracking** - Monitors OpenAI token usage and costs (coming soon!!!)
@@ -57,9 +57,9 @@ Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's
   <tr>
     <td><strong>AI Engine</strong></td>
     <td>
-      <p>Integration with OpenAI's GPT-4 for generating intelligent video summaries and insights</p>
+      <p>Integration with OpenAI's o3-mini for generating intelligent video summaries and insights</p>
       <p>
-        <img src="https://img.shields.io/badge/OpenAI-GPT_4-green?logo=openai&logoColor=white" alt="OpenAI" />
+        <img src="https://img.shields.io/badge/OpenAI-o3_mini-green?logo=openai&logoColor=white" alt="OpenAI o3-mini" />
       </p>
     </td>
   </tr>
@@ -124,7 +124,7 @@ Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's
 1. **Input**: User submits a YouTube URL through the Next.js frontend
 2. **Validation**: FastAPI backend validates and extracts video information using yt-dlp
 3. **Processing**: Background services handle transcript and chapter extraction
-4. **AI Generation**: OpenAI GPT-4 analyzes the transcript and generates a comprehensive digest
+4. **AI Generation**: OpenAI o3-mini analyzes the transcript and generates a comprehensive digest
 5. **Storage**: All data is stored in PostgreSQL for future retrieval
 6. **Presentation**: Frontend displays the digest with interactive timestamps and chapter navigation
 
