@@ -128,6 +128,44 @@ Transform YouTube videos into comprehensive, AI-powered summaries using OpenAI's
 5. **Storage**: All data is stored in PostgreSQL for future retrieval
 6. **Presentation**: Frontend displays the digest with interactive timestamps and chapter navigation
 
+## Under the Hood: The Processing Pipeline
+
+This application employs a decoupled, asynchronous architecture to handle potentially long-running tasks like fetching transcripts and generating AI summaries without blocking the user interface.
+
+1.  **Video Submission (`POST /api/v1/videos/`):**
+    *   The user submits a YouTube URL.
+    *   The FastAPI backend receives the request.
+    *   `yt-dlp` is used to quickly validate the URL and extract essential video metadata (title, duration, channel info).
+    *   A `Video` record is created in the PostgreSQL database with `processing_status: PENDING`.
+    *   A background task (`process_video_background`) is queued to handle transcript fetching.
+
+2.  **Transcript Fetching & Processing (Background Task - `process_video_background` & `TranscriptService`):
+    *   The background worker picks up the task.
+    *   The `Video` status is updated to `PROCESSING`.
+    *   The `TranscriptService` attempts to download the video's transcript using `yt-dlp`.
+    *   A `Transcript` record is created.
+    *   If successful, the raw transcript data is processed and stored, and the `Transcript` status is set to `PROCESSED`.
+    *   The `Video` status is updated to `COMPLETED` (or `FAILED` if transcript fetching fails).
+
+3.  **Digest Request (`POST /api/v1/videos/{video_id}/digests`):
+    *   The frontend (or another client) requests a digest for a video.
+    *   The API checks if the video exists and has a `PROCESSED` transcript.
+    *   A `Digest` record is created in the database, initially with empty content (`content: ""`).
+    *   A background task (`generate_digest_background`) is queued, passing the ID of the new `Digest` record.
+
+4.  **AI Summarization (Background Task - `generate_digest_background`):
+    *   The background worker picks up the digest generation task.
+    *   It retrieves the `Digest`, `Video`, and `Transcript` data from the database.
+    *   It selects the appropriate AI summarizer (e.g., `OpenAISummarizer`) based on the request or defaults.
+    *   It calls the AI provider's API (e.g., OpenAI) with the transcript content.
+    *   Upon receiving the summary, it updates the `Digest` record in the database with the generated `content`, token usage, cost, and model details.
+
+5.  **Retrieval (`GET /api/v1/videos/{video_id}` or `GET /api/v1/digests/{digest_id}`):
+    *   The frontend polls or fetches the video/digest details.
+    *   The API returns the requested data, including the generated summary once the background task is complete.
+
+This asynchronous approach ensures the application remains responsive, even when dealing with slow external APIs or large transcripts.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
