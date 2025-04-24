@@ -11,7 +11,7 @@ jobs:
   move_bug_issues:
     name: Move Bug to Project Column
     if: github.event.label.name == 'bug'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions: 
       issues: read
       repository-projects: write
