@@ -1,0 +1,36 @@
+# Git files
+.git
+.gitignore
+
+# Docker files
+.dockerignore
+Dockerfile
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+.Python
+env/
+venv/
+.venv/
+
+# Environment files
+.env
+.env.*
+
+# Database files
+*.sqlite3
+*.db
+
+# Test files and reports (if not needed in production image)
+tests/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

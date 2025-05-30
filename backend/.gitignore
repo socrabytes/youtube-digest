@@ -1,0 +1,48 @@
+# Environment variables
+.env
+.venv
+venv/
+ENV/
+
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Databases
+*.sqlite3
+*.db
+*.db.old
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local Alembic config (if any specific local overrides)
+# alembic.ini (if it's not meant to be versioned, but it is in this project)
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/

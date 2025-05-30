@@ -6,7 +6,12 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/scripts:/app/scripts
+      - ./backend/tests:/app/tests
+      - ./backend/alembic.ini:/app/alembic.ini
+      - ./backend/requirements.txt:/app/requirements.txt
     env_file:
       - ./backend/.env
     environment:
@@ -26,7 +31,16 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend:/app
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+      - ./frontend/next.config.js:/app/next.config.js
+      - ./frontend/next.config.ts:/app/next.config.ts
+      - ./frontend/postcss.config.mjs:/app/postcss.config.mjs
+      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/eslint.config.mjs:/app/eslint.config.mjs
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:

@@ -1,0 +1,38 @@
+# Git files
+.git
+.gitignore
+
+# Docker files
+.dockerignore
+Dockerfile
+
+# Node.js dependencies and build artifacts
+node_modules/
+.next/
+out/
+build/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+# The !.env.example is tricky for .dockerignore,
+# it might be better to ensure .env.example is explicitly copied if needed
+# or rely on build args / runtime env vars for example values.
+# For now, let's keep it simple and just ignore all .env files.
+# If .env.example is truly needed in the image, it should be copied explicitly in Dockerfile.
+
+# TypeScript cache
+*.tsbuildinfo
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
