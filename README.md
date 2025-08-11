@@ -242,6 +242,7 @@ Only use `docker-compose down` when you need to tear down your environment compl
   <tr>
     <td>
       <ul>
+        <li><a href="./docs/features/codebase-overview.md">Codebase Overview</a> - Architecture, flow, conventions</li>
         <li><a href="./docs/features/ai-video-summarization.md">Features</a> - Detailed feature explanations</li>
         <li><a href="./docs/patterns/README.md">Development Patterns</a> - Code organization</li>
         <li><a href="./docs/patterns/openai-integration.md">OpenAI Integration</a> - AI implementation</li>
@@ -262,3 +263,10 @@ Only use `docker-compose down` when you need to tear down your environment compl
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow our [Gitmoji commit convention](./docs/workflow/github-projects.md) and check the project board for current priorities.
+
+Developer setup: install and enable pre-commit hooks to enforce formatting and linting for the backend.
+
+```bash
+pip install pre-commit
+pre-commit install
+```
